@@ -1,242 +1,299 @@
 
 # BlueprintAI
-AI-Assisted Page Blueprint & Compliance Recommender
 
-## Overview
-BlueprintAI is an AI-powered assistant that converts a webpage brief into a compliant page blueprint using approved design-system components, with explainable reasoning and human review checkpoints.
+BlueprintAI is an AI-assisted **Design-to-Delivery Accelerator** that converts a webpage brief into an explainable, design‑system compliant page blueprint.  
+The project demonstrates how AI can assist web teams in moving from **brief → design system components → governed page blueprint → developer handoff**.
 
-Modern web teams managing large digital portfolios face a major challenge: translating high-level briefs into pages that remain consistent with design systems, accessibility rules and regulatory requirements. This process is often manual and slow.
-
-BlueprintAI accelerates this step by automatically interpreting a brief, recommending an approved page structure and highlighting areas that require human compliance review.
-
-The system demonstrates how AI can assist web teams across the design-to-delivery workflow while maintaining transparency and human oversight.
+This prototype was built for a hackathon focused on **AI-assisted web delivery workflows**.
 
 ---
 
-## Problem
+# Core Idea
 
-Large organisations maintain thousands of webpages across markets, audiences and regulatory environments.
+Large organisations often maintain **design systems** containing approved UI components.  
+When teams receive a webpage brief, designers and developers must decide:
 
-The difficulty is not building pages.
-The difficulty is translating a brief into a compliant page structure.
+• Which components should be used  
+• How they should be structured  
+• What compliance checks apply  
+• How the final page should be implemented  
 
-Typical workflow:
+BlueprintAI accelerates this process by using:
 
-Strategy → Design → Development → QA → Legal Review → Launch
-
-Manual interpretation between each stage creates delays and inconsistencies.
-
-Teams must decide:
-- what components should appear on the page
-- what compliance elements are required
-- what needs legal or medical review
-- how to structure the page for accessibility and clarity
-
-BlueprintAI focuses on the earliest bottleneck:
-
-brief → page blueprint
+• **RAG over design-system documentation**
+• **AI component recommendations**
+• **Explainable reasoning**
+• **Compliance flagging**
+• **Human approval checkpoints**
+• **Developer handoff generation**
 
 ---
 
-## Solution
+# Workflow
 
-BlueprintAI generates a governed page blueprint grounded in design system documentation.
+The system follows a human‑centred AI workflow:
 
-The system performs four main tasks:
+```
+Brief
+ ↓
+Requirement Extraction
+ ↓
+Component Retrieval (RAG)
+ ↓
+Blueprint Variant Generation
+ ↓
+Human Review & Selection
+ ↓
+Developer Handoff Specification
+```
 
-1. Interpret a webpage brief
-2. Recommend a page structure using approved components
-3. Explain why each component was selected
-4. Flag areas requiring compliance or human review
-
-Instead of producing arbitrary layouts, BlueprintAI ensures the output remains aligned with an organisation’s design system and governance requirements.
-
----
-
-## Example
-
-### Input Brief
-
-UK patient-facing page explaining migraine treatment  
-Include safety information and a next-step call to action
-
-### Extracted Requirements
-
-Audience: Patients  
-Market: UK  
-Content type: Treatment explanation  
-Compliance sensitivity: High
-
-### Recommended Page Blueprint
-
-Hero Section  
-Intro Text Block  
-Treatment Overview Cards  
-Safety Information Accordion  
-FAQ Section  
-CTA Block  
-Legal Disclaimer Footer
-
-### Compliance Flags
-
-⚠ Medical claims require regulatory review  
-⚠ Safety information must be validated  
-⚠ Disclaimer wording requires legal approval
+This keeps **humans in control**, which is critical in regulated industries.
 
 ---
 
-## System Workflow
+# Features
 
-User Brief  
-↓  
-Requirement Extraction  
-↓  
-Retrieve Design System Knowledge  
-↓  
-Page Blueprint Generation  
-↓  
-Compliance Rule Layer  
-↓  
-Structured Output
+## 1. Brief Interpretation
 
-The system combines natural language understanding, retrieval over design system documentation and rule-based governance checks.
+The user provides a webpage brief such as:
 
----
+```
+Create a patient-facing webpage for a migraine treatment in the UK.
+Explain the treatment in simple language and include safety information,
+FAQs, and a clear next step to speak with a doctor.
+```
 
-## Architecture
+BlueprintAI extracts:
 
-Brief Input  
-↓  
-LLM Requirement Extraction  
-↓  
-Vector Retrieval (Design System Docs)  
-↓  
-Blueprint Generation  
-↓  
-Compliance Rules Engine  
-↓  
-Page Blueprint + Review Flags
+• Audience  
+• Market  
+• Content type  
+• Compliance sensitivity  
 
 ---
 
-## Key Features
+## 2. RAG over Design System Components
 
-### AI Brief Interpretation
-Understands user intent, audience and content requirements.
-
-### Design-System Grounded Recommendations
-Components are selected from an approved component library.
-
-### Explainable AI
-Each recommendation includes a reason and supporting documentation.
-
-### Compliance Awareness
-The system flags areas requiring legal, regulatory or accessibility review.
-
-### Human Oversight
-AI suggestions are transparent and designed to support human decision-making rather than replace it.
-
----
-
-## Technology Stack
-
-Frontend  
-Streamlit or lightweight React interface
-
-Backend  
-Python API
-
-LLM  
-OpenAI / Claude / Gemini
-
-Vector Database  
-Chroma or FAISS
-
-Embeddings  
-Text embedding models
-
-Rule Engine  
-Simple Python policy layer
-
----
-
-## Component Knowledge Base
-
-BlueprintAI relies on a curated design-system component library.
+The system retrieves relevant components from a small design system knowledge base.
 
 Example components:
 
-- Hero
-- Intro Text Block
-- Feature Grid
-- Treatment Overview Cards
-- Safety Accordion
-- FAQ Section
-- CTA Banner
-- Testimonial Strip
-- Disclaimer Footer
+• Hero  
+• Treatment Overview Cards  
+• Safety Accordion  
+• FAQ Section  
+• CTA Block  
+• Disclaimer Footer  
 
-Each component includes metadata such as:
+Embeddings are generated using:
 
-- Purpose
-- Use Cases
-- Avoid Cases
-- Accessibility Notes
-- Related Components
+```
+sentence-transformers/all-MiniLM-L6-v2
+```
 
-This information is embedded and indexed to support retrieval.
+Similarity search determines which components are most relevant to the brief.
 
 ---
 
-## Structured Output Example
+## 3. Blueprint Variant Generation
 
-{
-  "page_type": "patient_treatment_page",
-  "components": [
-    "hero",
-    "intro_text",
-    "treatment_cards",
-    "safety_accordion",
-    "faq",
-    "cta_block",
-    "disclaimer_footer"
-  ],
-  "review_flags": [
-    "medical_claim_review",
-    "legal_disclaimer_review"
-  ]
-}
+The LLM generates **multiple blueprint variants**.
 
----
+Each variant contains:
 
-## Demo Flow
+• Component sequence  
+• Content summary  
+• Rationale  
+• Confidence score  
 
-1. User enters a webpage brief
-2. AI extracts structured requirements
-3. System retrieves relevant design-system knowledge
-4. Page blueprint is generated
-5. Compliance review flags are displayed
+Example:
 
-The interface shows:
-- what the AI understood
-- what it recommended
-- why it recommended it
-- what requires human approval
+```
+Variant: Educational Treatment Page
+
+1. Hero
+2. Treatment Overview Cards
+3. Safety Accordion
+4. FAQ Section
+5. CTA Block
+6. Disclaimer Footer
+```
+
+This provides **explainable planning rather than direct code generation**.
 
 ---
 
-## Future Extensions
+## 4. Compliance Flagging
 
-Possible extensions beyond the hackathon include:
+A lightweight rule system flags potential regulatory issues.
 
-- HTML component scaffold generation
-- Figma design token integration
-- automated accessibility validation
-- Jira ticket generation for compliance issues
-- design system drift detection
+Examples:
+
+• Medical claim review required  
+• Patient content review required  
+• Market-specific compliance review  
+• Accessibility audit required  
+
+These flags ensure **governance and oversight**.
 
 ---
 
-## Why This Matters
+## 5. Human Review
 
-BlueprintAI demonstrates how AI can support web teams by turning briefs into structured, compliant page blueprints. The system improves delivery speed while maintaining consistency, transparency and human oversight.
+The UI highlights stakeholders who must approve the blueprint:
+
+• Medical Affairs  
+• Regulatory  
+• Accessibility QA  
+
+This enforces **human‑in‑the‑loop AI usage**.
+
+---
+
+## 6. Developer Handoff
+
+After approval, the system can generate a **developer page specification**.
+
+Example structure:
+
+```
+Page Type: Patient Treatment Page
+
+Layout:
+1. Hero
+2. Treatment Overview Cards
+3. Safety Accordion
+4. FAQ Section
+5. CTA Block
+6. Disclaimer Footer
+```
+
+Each component includes:
+
+• Props  
+• Accessibility notes  
+• Content guidance
+
+This bridges **design → engineering**.
+
+---
+
+# User Interface
+
+The Streamlit UI presents the workflow clearly:
+
+1️⃣ Extracted Requirements  
+2️⃣ Generation Summary  
+3️⃣ Blueprint Variants  
+4️⃣ Compliance Flags  
+5️⃣ Human Review Requirements  
+6️⃣ Developer Handoff  
+7️⃣ Evidence Panel (RAG transparency)
+
+Raw JSON is available for debugging but hidden by default.
+
+---
+
+# Technology Stack
+
+Frontend
+
+• Streamlit
+
+AI
+
+• Google Gemini (Flash models) for reasoning
+• Sentence Transformers for embeddings
+
+Retrieval
+
+• Semantic similarity search over component documentation
+
+Backend
+
+• Python
+
+---
+
+# Project Structure
+
+```
+blueprintai/
+│
+├── app.py
+│
+├── src/
+│   ├── blueprint.py
+│   ├── retriever.py
+│   ├── compliance.py
+│   ├── llm.py
+│
+├── data/
+│   └── components.json
+│
+└── requirements.txt
+```
+
+---
+
+# Running the Project
+
+Create a virtual environment
+
+```
+python -m venv blue
+source blue/bin/activate
+```
+
+Install dependencies
+
+```
+pip install -r requirements.txt
+```
+
+Add environment variables
+
+```
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=gemini-2.0-flash
+```
+
+Run the application
+
+```
+streamlit run app.py
+```
+
+---
+
+# Future Improvements
+
+Possible extensions:
+
+• Visual wireframe generation from blueprint  
+• Full Graph‑based component relationships  
+• Accessibility validation engine  
+• Automated QA rule checking  
+• Direct Figma component mapping  
+• Code generation for frontend frameworks  
+
+---
+
+# Why This Matters
+
+Modern web platforms contain **thousands of pages and components**.
+
+AI can accelerate delivery only if it:
+
+• respects design systems  
+• remains explainable  
+• includes human oversight  
+• enforces compliance
+
+BlueprintAI demonstrates how **AI can assist without removing governance**.
+
+---
+
+# License
+
+Prototype created for hackathon experimentation.

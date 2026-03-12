@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Hero",
+    "purpose": "Introduce the page and communicate the main message",
+    "use_when": [
+      "page needs strong introduction",
+      "campaign or treatment landing page",
+      "patient-facing education page"
+    ],
+    "avoid_when": [
+      "dense documentation-only pages"
+    ],
+    "accessibility_notes": [
+      "Use a clear heading hierarchy",
+      "Ensure CTA button has descriptive label"
+    ]
+  },
+  {
+    "name": "Treatment Overview Cards",
+    "purpose": "Explain treatment features in a scannable layout",
+    "use_when": [
+      "explaining benefits",
+      "patient education pages",
+      "simplifying complex medical concepts"
+    ],
+    "avoid_when": [
+      "when only one concept needs explanation"
+    ],
+    "accessibility_notes": [
+      "Keep headings short and descriptive"
+    ]
+  },
+  {
+    "name": "Safety Accordion",
+    "purpose": "Display safety or risk information in expandable sections",
+    "use_when": [
+      "medical or treatment pages",
+      "regulatory disclosures",
+      "side effects and warnings"
+    ],
+    "avoid_when": [
+      "critical emergency information that must always be visible"
+    ],
+    "accessibility_notes": [
+      "Accordion must support keyboard navigation",
+      "Expanded state must be announced"
+    ]
+  },
+  {
+    "name": "FAQ",
+    "purpose": "Answer common user questions",
+    "use_when": [
+      "complex information",
+      "patient-facing pages",
+      "pages with expected user uncertainty"
+    ],
+    "avoid_when": [
+      "very short pages with little supporting information"
+    ],
+    "accessibility_notes": [
+      "Questions should be concise and meaningful"
+    ]
+  },
+  {
+    "name": "CTA Block",
+    "purpose": "Guide the user to the next step",
+    "use_when": [
+      "conversion",
+      "appointment booking",
+      "contact actions"
+    ],
+    "avoid_when": [
+      "when next step is unclear or unsupported"
+    ],
+    "accessibility_notes": [
+      "CTA text must be specific"
+    ]
+  },
+  {
+    "name": "Disclaimer Footer",
+    "purpose": "Display legal or regulatory disclaimers",
+    "use_when": [
+      "medical claims",
+      "regulated industries",
+      "patient-facing treatment pages"
+    ],
+    "avoid_when": [],
+    "accessibility_notes": [
+      "Do not reduce text contrast"
+    ]
+  }
+]

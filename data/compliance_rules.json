@@ -1,0 +1,14 @@
+[
+  {
+    "condition": "patient",
+    "flag": "Safety information must be reviewed by compliance"
+  },
+  {
+    "condition": "treatment",
+    "flag": "Medical claims require regulatory review"
+  },
+  {
+    "condition": "medical",
+    "flag": "Legal disclaimer required"
+  }
+]
