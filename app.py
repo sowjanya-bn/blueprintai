@@ -579,65 +579,426 @@ def render_wireframe_from_variant(variant: dict):
         st.info("No components available for preview.")
         return
 
-    for comp in components:
+    st.markdown(
+        """
+        <style>
+        .wf-canvas {
+            max-width: 920px;
+            margin: 28px auto;
+            padding: 30px 28px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+        }
+
+        .wf-page-label {
+            text-align: center;
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            color: #64748b;
+            margin-bottom: 18px;
+            font-weight: 700;
+        }
+
+        .wf-end-label {
+            text-align: center;
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            color: #64748b;
+            margin-top: 18px;
+            font-weight: 700;
+        }
+
+        .wf-block {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 18px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .wf-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .wf-hero {
+            padding: 26px 22px;
+            min-height: 190px;
+        }
+
+        .wf-line-lg {
+            height: 18px;
+            width: 60%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.82);
+            margin-bottom: 14px;
+        }
+
+        .wf-line-md {
+            height: 12px;
+            width: 72%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.22);
+            margin-bottom: 10px;
+        }
+
+        .wf-line-sm {
+            height: 12px;
+            width: 48%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            margin-bottom: 18px;
+        }
+
+        .wf-btn {
+            display: inline-block;
+            height: 34px;
+            width: 120px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.85);
+            margin-top: 10px;
+        }
+
+        .wf-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .wf-card {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            min-height: 120px;
+            padding: 14px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .wf-card-line-1 {
+            height: 12px;
+            width: 60%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.35);
+            margin-bottom: 12px;
+        }
+
+        .wf-card-line-2 {
+            height: 10px;
+            width: 90%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            margin-bottom: 8px;
+        }
+
+        .wf-card-line-3 {
+            height: 10px;
+            width: 70%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+        }
+
+        .wf-logo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .wf-logo {
+            height: 42px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+
+        .wf-accordion-item {
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wf-accordion-line {
+            height: 12px;
+            width: 58%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.28);
+        }
+
+        .wf-accordion-icon {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.22);
+        }
+
+        .wf-cta {
+            text-align: center;
+            padding: 28px 20px;
+            min-height: 140px;
+        }
+
+        .wf-cta-title {
+            height: 16px;
+            width: 44%;
+            margin: 0 auto 14px auto;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.78);
+        }
+
+        .wf-cta-sub {
+            height: 12px;
+            width: 58%;
+            margin: 0 auto 18px auto;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+        }
+
+        .wf-form-wrap {
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        .wf-input {
+            height: 38px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            margin-bottom: 10px;
+        }
+
+        .wf-footer {
+            min-height: 78px;
+            padding: 18px;
+        }
+
+        .wf-footer-line-1 {
+            height: 10px;
+            width: 75%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            margin-bottom: 10px;
+        }
+
+        .wf-footer-line-2 {
+            height: 10px;
+            width: 52%;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+        }
+
+        .wf-summary {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-top: 12px;
+        }
+
+        .wf-device {
+            margin-bottom: 1rem;
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            color: #cbd5e1;
+            font-size: 0.92rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    preview_name = variant.get("pattern_name", "Approved Variant")
+    st.markdown(
+        f"""
+        <div class="wf-device">
+            <strong>Previewing Approved Blueprint</strong><br>
+            Pattern: {preview_name}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div class="wf-canvas">', unsafe_allow_html=True)
+    st.markdown('<div class="wf-page-label">DESKTOP LAYOUT PREVIEW</div>', unsafe_allow_html=True)
+    st.markdown('<div class="wf-page-label" style="margin-top:-6px;">PAGE START</div>', unsafe_allow_html=True)
+
+    for idx, comp in enumerate(components, start=1):
         name = comp.get("component_name", "Unknown Component")
         summary = comp.get("content_summary", "Component preview")
+        name_lower = name.lower()
 
-        if name == "Hero":
-            with st.container(border=True):
-                st.markdown('<div class="wireframe-label">HERO</div>', unsafe_allow_html=True)
-                st.markdown("### Headline Placeholder")
-                st.write("Supporting subheadline for the treatment or page purpose.")
-                btn1, btn2 = st.columns([1, 4])
-                with btn1:
-                    st.button("CTA", key=f"hero_cta_{name}")
-                with btn2:
-                    st.caption(summary)
+        label = f"{idx}. {name}"
 
-        elif name == "Treatment Overview Cards":
-            with st.container(border=True):
-                st.markdown('<div class="wireframe-label">TREATMENT OVERVIEW CARDS</div>', unsafe_allow_html=True)
-                c1, c2, c3 = st.columns(3)
-                c1.info("Card 1")
-                c2.info("Card 2")
-                c3.info("Card 3")
-                st.caption(summary)
+        if "hero" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block wf-hero">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-line-lg"></div>
+                    <div class="wf-line-md"></div>
+                    <div class="wf-line-sm"></div>
+                    <div class="wf-btn"></div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        elif name == "Safety Accordion":
-            with st.container(border=True):
-                st.markdown('<div class="wireframe-label">SAFETY ACCORDION</div>', unsafe_allow_html=True)
-                with st.expander("Possible side effects"):
-                    st.write("Safety content preview")
-                with st.expander("Warnings and precautions"):
-                    st.write("Safety content preview")
-                st.caption(summary)
+        elif "trust" in name_lower or "logo" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-logo-grid">
+                        <div class="wf-logo"></div>
+                        <div class="wf-logo"></div>
+                        <div class="wf-logo"></div>
+                        <div class="wf-logo"></div>
+                        <div class="wf-logo"></div>
+                    </div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        elif name == "FAQ":
-            with st.container(border=True):
-                st.markdown('<div class="wireframe-label">FAQ</div>', unsafe_allow_html=True)
-                with st.expander("Common question 1"):
-                    st.write("Answer preview")
-                with st.expander("Common question 2"):
-                    st.write("Answer preview")
-                st.caption(summary)
+        elif "feature" in name_lower or "card" in name_lower or "grid" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-grid">
+                        <div class="wf-card">
+                            <div class="wf-card-line-1"></div>
+                            <div class="wf-card-line-2"></div>
+                            <div class="wf-card-line-3"></div>
+                        </div>
+                        <div class="wf-card">
+                            <div class="wf-card-line-1"></div>
+                            <div class="wf-card-line-2"></div>
+                            <div class="wf-card-line-3"></div>
+                        </div>
+                        <div class="wf-card">
+                            <div class="wf-card-line-1"></div>
+                            <div class="wf-card-line-2"></div>
+                            <div class="wf-card-line-3"></div>
+                        </div>
+                    </div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        elif name == "CTA Block":
-            with st.container(border=True):
-                st.markdown('<div class="wireframe-label">CTA BLOCK</div>', unsafe_allow_html=True)
-                st.write("Next-step guidance or conversion action.")
-                st.button("Talk to a doctor", key=f"cta_{name}")
-                st.caption(summary)
+        elif "accordion" in name_lower or "faq" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-accordion-item">
+                        <div class="wf-accordion-line"></div>
+                        <div class="wf-accordion-icon"></div>
+                    </div>
+                    <div class="wf-accordion-item">
+                        <div class="wf-accordion-line"></div>
+                        <div class="wf-accordion-icon"></div>
+                    </div>
+                    <div class="wf-accordion-item">
+                        <div class="wf-accordion-line"></div>
+                        <div class="wf-accordion-icon"></div>
+                    </div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        elif name == "Disclaimer Footer":
-            with st.container(border=True):
-                st.markdown('<div class="wireframe-label">DISCLAIMER FOOTER</div>', unsafe_allow_html=True)
-                st.caption("Regulatory and legal disclaimer preview")
-                st.caption(summary)
+        elif "cta" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block wf-cta">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-cta-title"></div>
+                    <div class="wf-cta-sub"></div>
+                    <div class="wf-btn" style="margin: 0 auto;"></div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        elif "contact" in name_lower or "leadgen" in name_lower or "form" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block wf-cta">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-form-wrap">
+                        <div class="wf-input"></div>
+                        <div class="wf-input"></div>
+                        <div class="wf-input"></div>
+                        <div class="wf-btn" style="margin: 12px auto 0 auto;"></div>
+                    </div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        elif "footer" in name_lower or "disclaimer" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block wf-footer">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-footer-line-1"></div>
+                    <div class="wf-footer-line-2"></div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        elif "stat" in name_lower or "metric" in name_lower or "counter" in name_lower:
+            st.markdown(
+                f"""
+                <div class="wf-block">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-grid">
+                        <div class="wf-card" style="min-height: 90px;"></div>
+                        <div class="wf-card" style="min-height: 90px;"></div>
+                        <div class="wf-card" style="min-height: 90px;"></div>
+                    </div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         else:
-            with st.container(border=True):
-                st.markdown(f'<div class="wireframe-label">{name.upper()}</div>', unsafe_allow_html=True)
-                st.write(summary)
+            st.markdown(
+                f"""
+                <div class="wf-block">
+                    <div class="wf-label">{label}</div>
+                    <div class="wf-line-md" style="width: 64%;"></div>
+                    <div class="wf-line-sm" style="width: 42%;"></div>
+                    <div class="wf-summary">{summary}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown('<div class="wf-end-label">PAGE END</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 # Top action bar

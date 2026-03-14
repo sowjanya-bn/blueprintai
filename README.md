@@ -360,7 +360,7 @@ Install dependencies
 Add environment variables
 
     export GEMINI_API_KEY=your_api_key
-    export GEMINI_MODEL=gemini-2.0-flash
+    export GEMINI_MODEL=gemini-3-flash-preview
 
 Run the application
 

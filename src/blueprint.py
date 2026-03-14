@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
-
-from src.compliance import check_compliance
+from pathlib import Path
 from src.llm import generate_json
 from src.retriever import retrieve_components
 from src.compliance_engine import ComplianceEngine
 
 compliance_engine = ComplianceEngine()
 
+
+def load_prompt(name: str) -> str:
+    path = Path("prompts") / name
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
 
 def create_blueprint(brief: str) -> dict:
     retrieved = retrieve_components(brief, top_k=5)
@@ -30,70 +34,14 @@ def create_blueprint(brief: str) -> dict:
 
     evidence_text = "\n\n---\n\n".join(evidence_blocks)
 
-    prompt = f"""
-You are BlueprintAI, an enterprise web design assistant.
+    prompt_template = load_prompt("blueprint_generation.txt")
 
-Your job is to convert a webpage brief into a governed page blueprint.
-
-Rules:
-- Recommend only from the approved components listed in the retrieved evidence
-- Be concise, structured, and realistic
-- Prefer explainable choices
-- Return valid JSON only
-- Generate exactly 3 blueprint variants
-- Include confidence scores between 0 and 1
-- Include a short pattern_reasoning list explaining why this page structure suits the brief
-- The page_specification must be developer-friendly
-
-Webpage brief:
-{brief}
-
-Approved retrieved component evidence:
-{evidence_text}
-
-Return JSON in this schema:
-
-{{
-  "requirements": {{
-    "audience": "string",
-    "market": "string",
-    "content_type": "string",
-    "compliance_sensitivity": "Low | Medium | High"
-  }},
-  "pattern_reasoning": [
-    "string"
-  ],
-  "variants": [
-    {{
-      "pattern_name": "string",
-      "fit_score": 0.0,
-      "description": "string",
-      "components": [
-        {{
-          "component_name": "string",
-          "content_summary": "string",
-          "rationale": "string",
-          "confidence": 0.0
-        }}
-      ]
-    }}
-  ],
-  "human_review_required": ["string"],
-  "page_specification": {{
-    "page_type": "string",
-    "layout": [
-      {{
-        "component": "string",
-        "props": {{}},
-        "accessibility_notes": ["string"]
-      }}
-    ]
-  }}
-}}
-
-Only use these component names:
-{allowed_component_names}
-"""
+    prompt = (
+        prompt_template
+        .replace("[[BRIEF]]", brief)
+        .replace("[[EVIDENCE_TEXT]]", evidence_text)
+        .replace("[[ALLOWED_COMPONENT_NAMES]]", "\n".join(allowed_component_names))
+    )
 
     llm_output = generate_json(prompt)
 

@@ -1,12 +1,24 @@
+import json
 import re
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from src.compliance_policies import POLICIES, CompliancePolicy
+from src.compliance_policies import CompliancePolicy
 
+
+def load_policies():
+    path = Path("data/compliance_rules.json")
+
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+
+    return [CompliancePolicy(**p) for p in raw]
+
+POLICIES = load_policies()
 
 class ComplianceEngine:
     def __init__(
@@ -22,6 +34,10 @@ class ComplianceEngine:
         self.semantic_threshold_medium = semantic_threshold_medium
         self.semantic_threshold_borderline = semantic_threshold_borderline
         self.negative_weight = negative_weight
+
+
+
+
 
     def run(self, brief: str) -> Dict[str, Any]:
         brief = (brief or "").strip()
@@ -42,6 +58,7 @@ class ComplianceEngine:
 
         flags: List[Dict[str, Any]] = []
         evidence: List[Dict[str, Any]] = []
+
 
         for policy in POLICIES:
             result = self._evaluate_policy(brief=brief, chunks=chunks, policy=policy)
@@ -73,6 +90,7 @@ class ComplianceEngine:
         chunks: List[str],
         policy: CompliancePolicy,
     ) -> Dict[str, Any]:
+
         keyword_score, keyword_hits = self._keyword_match_score(brief, policy.keywords)
 
         positive_match = self._best_semantic_match(chunks, policy.example_phrases)
