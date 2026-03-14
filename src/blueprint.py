@@ -5,6 +5,9 @@ import json
 from src.compliance import check_compliance
 from src.llm import generate_json
 from src.retriever import retrieve_components
+from src.compliance_engine import ComplianceEngine
+
+compliance_engine = ComplianceEngine()
 
 
 def create_blueprint(brief: str) -> dict:
@@ -39,6 +42,7 @@ Rules:
 - Return valid JSON only
 - Generate exactly 3 blueprint variants
 - Include confidence scores between 0 and 1
+- Include a short pattern_reasoning list explaining why this page structure suits the brief
 - The page_specification must be developer-friendly
 
 Webpage brief:
@@ -56,9 +60,13 @@ Return JSON in this schema:
     "content_type": "string",
     "compliance_sensitivity": "Low | Medium | High"
   }},
+  "pattern_reasoning": [
+    "string"
+  ],
   "variants": [
     {{
       "pattern_name": "string",
+      "fit_score": 0.0,
       "description": "string",
       "components": [
         {{
@@ -94,12 +102,21 @@ Only use these component names:
     except json.JSONDecodeError as e:
         raise ValueError(f"Gemini did not return valid JSON:\n{llm_output}") from e
 
+    if isinstance(data, list):
+        if len(data) == 1 and isinstance(data[0], dict):
+            data = data[0]
+        else:
+            raise ValueError(
+                f"Expected a JSON object or single-item list containing an object, but got list:\n{data}"
+            )
+
     if not isinstance(data, dict):
         raise ValueError(
             f"Expected Gemini to return a JSON object, but got {type(data).__name__}:\n{data}"
         )
 
-    data["compliance_flags"] = check_compliance(brief)
-    data["retrieved_evidence"] = retrieved
 
+    compliance = compliance_engine.run(brief)
+    data["compliance_flags"] = compliance
+    data["retrieved_evidence"] = retrieved
     return data

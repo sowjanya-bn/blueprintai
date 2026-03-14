@@ -1,4 +1,5 @@
 import json
+import hashlib
 import streamlit as st
 from src.blueprint import create_blueprint
 
@@ -14,7 +15,7 @@ st.markdown(
     .block-container {
         padding-top: 1.2rem;
         padding-bottom: 2rem;
-        max-width: 95%;
+        max-width: 1500px;
     }
 
     [data-testid="stMetricValue"] {
@@ -29,24 +30,6 @@ st.markdown(
         margin-top: -0.2rem;
         color: #94a3b8;
         font-size: 0.98rem;
-    }
-
-    .workflow-step-complete {
-        text-align: center;
-        padding: 0.7rem 0.5rem;
-        border-radius: 12px;
-        background: rgba(34, 197, 94, 0.10);
-        border: 1px solid rgba(34, 197, 94, 0.4);
-        font-weight: 600;
-    }
-
-    .workflow-step-pending {
-        text-align: center;
-        padding: 0.7rem 0.5rem;
-        border-radius: 12px;
-        background: rgba(148, 163, 184, 0.08);
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        font-weight: 600;
     }
 
     .approved-banner {
@@ -64,6 +47,22 @@ st.markdown(
         margin-bottom: 0.8rem;
         font-size: 0.92rem;
     }
+
+    .wireframe-box {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.85rem;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .wireframe-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.04em;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -78,15 +77,8 @@ if "brief" not in st.session_state:
 if "approved_variant" not in st.session_state:
     st.session_state.approved_variant = None
 
-
-def get_current_stage():
-    if not st.session_state.result:
-        return 1
-    if st.session_state.result and not st.session_state.approved_variant:
-        return 4
-    if st.session_state.approved_variant:
-        return 5
-    return 1
+if "flag_status" not in st.session_state:
+    st.session_state.flag_status = {}
 
 
 def blueprint_to_markdown(result: dict) -> str:
@@ -107,25 +99,14 @@ def blueprint_to_markdown(result: dict) -> str:
             for comp in variant.get("components", []):
                 md += f"- **{comp.get('component_name', 'Unknown')}**: {comp.get('content_summary', '')}\n"
 
-    flags = result.get("compliance_flags", [])
-    if flags:
+    compliance = result.get("compliance_flags", {})
+    compliance_items = compliance.get("flags", []) if isinstance(compliance, dict) else compliance
+    if compliance_items:
         md += "\n## Compliance Flags\n"
-        for flag in flags:
-            md += f"- **{flag.get('type', 'flag')}**: {flag.get('description', '')}\n"
+        for flag in compliance_items:
+            md += f"- **{flag.get('label', 'Flag')}** ({flag.get('severity', 'unknown')}): {flag.get('reason', flag.get('description', ''))}\n"
 
     return md
-
-def render_workflow_indicator():
-    stages = ["Blueprint", "Variants", "Evidence", "Handoff"]
-    current = st.session_state.get("workflow_stage", 0)
-
-    cols = st.columns(len(stages))
-
-    for i, stage in enumerate(stages):
-        if i <= current:
-            cols[i].success(stage)
-        else:
-            cols[i].info(stage)
 
 
 def render_requirements(requirements: dict):
@@ -150,7 +131,8 @@ def render_summary(result: dict):
     )
 
     variants = result.get("variants", [])
-    compliance_flags = result.get("compliance_flags", [])
+    compliance = result.get("compliance_flags", {})
+    compliance_flags = compliance.get("flags", []) if isinstance(compliance, dict) else compliance
     component_count = sum(len(v.get("components", [])) for v in variants)
 
     col1, col2, col3 = st.columns(3)
@@ -161,41 +143,42 @@ def render_summary(result: dict):
 
 def render_variant_card(variant: dict, idx: int):
     with st.container(border=True):
-        top_left, top_right = st.columns([5, 1])
 
-        with top_left:
-            st.markdown(f"### Variant {idx}: {variant.get('pattern_name', 'Untitled Variant')}")
-            st.write(variant.get("description", ""))
+        col1, col2 = st.columns([4, 1])
 
-        with top_right:
-            if st.button("Approve", key=f"approve_{idx}", use_container_width=True):
+        with col1:
+            st.markdown(f"### Variant {idx}: {variant.get('pattern_name', 'Untitled')}")
+
+        with col2:
+            if st.button("Approve", key=f"approve_{idx}"):
                 st.session_state.approved_variant = variant
-                st.success(f"Approved: {variant.get('pattern_name', f'Variant {idx}')}")
+                st.success("Variant approved!")
 
-        components = variant.get("components", [])
-        if not components:
-            st.info("No components returned for this variant.")
-            return
+        render_variant_fit_score(variant, is_best=((idx - 1) == best_idx))
 
-        st.markdown("#### Page Flow")
+        st.write(variant.get("description", ""))
 
-        for step, comp in enumerate(components, start=1):
-            confidence = comp.get("confidence", 0)
-            comp_name = comp.get("component_name", "Unknown Component")
+        st.markdown("**Page Flow**")
 
-            with st.expander(f"{step}. {comp_name}", expanded=(step == 1)):
-                col1, col2 = st.columns([4, 1])
+        flow = " → ".join(
+            [c.get("component_name") for c in variant.get("components", [])]
+        )
 
-                with col1:
-                    st.write(comp.get("content_summary", ""))
-                    st.caption(comp.get("rationale", ""))
+        st.markdown(f"**{flow}**")
 
-                with col2:
-                    if isinstance(confidence, (int, float)):
-                        st.metric("Confidence", f"{confidence:.2f}")
-                        st.progress(max(0.0, min(float(confidence), 1.0)))
-                    else:
-                        st.metric("Confidence", str(confidence))
+        st.divider()
+
+        for step, comp in enumerate(variant.get("components", []), start=1):
+
+            with st.expander(f"{step}. {comp.get('component_name', 'Component')}"):
+
+                st.write(comp.get("content_summary", ""))
+                st.caption(comp.get("rationale", ""))
+
+                conf = comp.get("confidence", 0)
+
+                if isinstance(conf, (int, float)):
+                    st.metric("Confidence", f"{conf:.2f}")
 
 
 def render_compliance_flags(flags: list[dict]):
@@ -315,9 +298,350 @@ def render_evidence(evidence_items: list[dict]):
             st.markdown("**Retrieved Evidence Text**")
             st.code(evidence, language="text")
 
+def render_pattern_reasoning(result: dict):
+    reasons = result.get("pattern_reasoning", [])
+
+    if not reasons:
+        return
+
+    st.subheader("🧠 Why this page pattern?")
+    st.caption("Explanation of how the system mapped the brief to a page structure.")
+
+    for reason in reasons:
+        st.write(f"• {reason}")
+
+
+def compute_risk_score(count):
+    if count == 0:
+        return 1.0, "Low"
+    elif count <= 2:
+        return 0.7, "Medium"
+    else:
+        return 0.4, "High"
+
+
+def get_flag_id(flag: dict, idx: int) -> str:
+    base = "|".join([
+        str(flag.get("policy_id", "")),
+        str(flag.get("matched_brief_text", "")),
+        str(flag.get("matched_policy_example", "")),
+        str(idx),
+    ])
+    return hashlib.md5(base.encode("utf-8")).hexdigest()[:12]
+
+
+def get_flag_groups(flags: dict) -> dict:
+    grouped = {}
+    for flag in flags.get("flags", []):
+        key = flag.get("review_type", "unknown")
+        grouped.setdefault(key, []).append(flag)
+    return grouped
+
+
+def normalize_label(value: str) -> str:
+    return value.replace("_", " ").title() if value else "Unknown"
+
+
+def render_compliance_summary(flags):
+
+    st.subheader("⚖️ Compliance Risk Assessment")
+
+    grouped_flags = get_flag_groups(flags)
+    if not grouped_flags:
+        st.success("No compliance risks detected.")
+        return
+
+    severity_rank = {"high": 3, "medium": 2, "low": 1}
+    badge_styles = {
+        "high": ("#4b1d1d", "#ff8a8a", "High"),
+        "medium": ("#4b3915", "#ffd37a", "Medium"),
+        "low": ("#183824", "#7ef2b3", "Low"),
+    }
+
+    for review_type, items in grouped_flags.items():
+        highest_severity = max(
+            (item.get("severity", "low") for item in items),
+            key=lambda s: severity_rank.get(s, 0),
+        )
+        bg, fg, label = badge_styles.get(highest_severity, badge_styles["low"])
+
+        left, right = st.columns([5, 1])
+        with left:
+            st.markdown(f"**{normalize_label(review_type)}**")
+        with right:
+            st.markdown(
+                f"""
+                <div style="
+                    background:{bg};
+                    color:{fg};
+                    padding:6px 10px;
+                    border-radius:999px;
+                    text-align:center;
+                    font-weight:600;
+                    font-size:0.85rem;
+                    width:100%;
+                "">{label}</div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def render_compliance_flags(flags):
+
+    st.subheader("⚠ Compliance Checks")
+
+    flag_items = flags.get("flags", []) if isinstance(flags, dict) else flags
+    if not flag_items:
+        st.success("No compliance risks detected.")
+        return
+
+    for idx, flag in enumerate(flag_items):
+        flag_id = get_flag_id(flag, idx)
+        status = st.session_state.flag_status.get(flag_id, "open")
+
+        with st.container(border=True):
+            title = flag.get("label") or normalize_label(flag.get("policy_id", "flag"))
+            severity = flag.get("severity", "unknown").title()
+            confidence = flag.get("confidence", "unknown").title()
+
+            st.markdown(f"### {title}")
+            meta_col1, meta_col2, meta_col3 = st.columns(3)
+            meta_col1.caption(f"Severity: {severity}")
+            meta_col2.caption(f"Confidence: {confidence}")
+            meta_col3.caption(f"Status: {status.replace('_', ' ').title()}")
+
+            st.write(flag.get("description", ""))
+
+            if flag.get("matched_brief_text"):
+                st.markdown("**Detected Text**")
+                st.code(flag.get("matched_brief_text", ""), language="text")
+
+            if flag.get("matched_policy_example"):
+                st.markdown("**Matched Pattern**")
+                st.caption(flag.get("matched_policy_example", ""))
+
+            if flag.get("reason"):
+                st.markdown("**Why this was flagged**")
+                st.write(flag.get("reason", ""))
+
+            st.markdown("**Recommended Action**")
+            st.write("• Review wording with compliance team")
+            if flag.get("review_type") == "safety_review":
+                st.write("• Validate side-effect and safety language before approval")
+            elif flag.get("review_type") == "medical_legal_review":
+                st.write("• Confirm treatment benefit wording is medically and legally approved")
+            else:
+                st.write("• Ensure regulatory language is approved")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Mark Reviewed", key=f"review_{flag_id}", use_container_width=True):
+                    st.session_state.flag_status[flag_id] = "reviewed"
+                    st.rerun()
+            with col2:
+                if st.button("Waive", key=f"waive_{flag_id}", use_container_width=True):
+                    st.session_state.flag_status[flag_id] = "waived"
+                    st.rerun()
+            with col3:
+                if st.button("Needs Fix", key=f"fix_{flag_id}", use_container_width=True):
+                    st.session_state.flag_status[flag_id] = "needs_fix"
+                    st.rerun()
+
+
+def render_compliance_status(flags):
+
+    st.subheader("Compliance Status")
+
+    flag_items = flags.get("flags", []) if isinstance(flags, dict) else flags
+    if not flag_items:
+        st.success("✔ Ready for publication")
+        return
+
+    statuses = [
+        st.session_state.flag_status.get(get_flag_id(flag, idx), "open")
+        for idx, flag in enumerate(flag_items)
+    ]
+
+    resolved = sum(1 for status in statuses if status != "open")
+    progress = resolved / len(flag_items) if flag_items else 1.0
+    st.progress(progress)
+    st.caption(f"Review progress: {resolved}/{len(flag_items)} flags resolved")
+
+    if "needs_fix" in statuses:
+        st.error("🚨 Content changes required before approval")
+    elif "open" in statuses:
+        st.warning("⚠ Pending compliance review")
+    else:
+        st.success("✅ Compliance review completed")
+
+
+
+def render_human_review(review_items):
+
+    st.subheader("👥 Human Review Required")
+
+    if not review_items:
+        st.success("No additional review steps required.")
+        return
+
+    cols = st.columns(len(review_items))
+
+    for col, item in zip(cols, review_items):
+
+        with col:
+            st.info(item)
+
+def get_best_variant_index(variants: list[dict]) -> int | None:
+    if not variants:
+        return None
+
+    scored = [
+        (idx, v.get("fit_score", 0))
+        for idx, v in enumerate(variants)
+        if isinstance(v.get("fit_score", 0), (int, float))
+    ]
+
+    if not scored:
+        return None
+
+    return max(scored, key=lambda x: x[1])[0]
+
+
+def render_variant_fit_score(variant: dict, is_best: bool = False):
+    score = variant.get("fit_score", 0)
+
+    if not isinstance(score, (int, float)):
+        st.caption("Fit score unavailable")
+        return
+
+    score = max(0.0, min(float(score), 1.0))
+    percent = int(score * 100)
+
+    st.markdown(f"**Fit Score — {percent}%**")
+    st.progress(score)
+
+    if is_best:
+        st.markdown(
+            """
+            <div style="
+                background-color:#163d28;
+                padding:8px 14px;
+                border-radius:6px;
+                font-weight:600;
+                color:#7ef2b3;
+            ">
+            ⭐ Recommended Variant
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+def render_variant_ranking(variants: list[dict]):
+    st.subheader("🏁 Variant Ranking")
+    st.caption("How well each page structure fits the brief.")
+
+    if not variants:
+        st.info("No variants available.")
+        return
+
+    ranked = sorted(
+        variants,
+        key=lambda v: v.get("fit_score", 0) if isinstance(v.get("fit_score", 0), (int, float)) else 0,
+        reverse=True,
+    )
+
+    for rank, variant in enumerate(ranked, start=1):
+        score = variant.get("fit_score", 0)
+        score = max(0.0, min(float(score), 1.0)) if isinstance(score, (int, float)) else 0.0
+        percent = int(round(score * 100))
+
+        with st.container(border=True):
+            c1, c2 = st.columns([4, 1])
+
+            with c1:
+                st.markdown(f"**#{rank} {variant.get('pattern_name', 'Untitled Variant')}**")
+                st.caption(variant.get("description", ""))
+
+            with c2:
+                st.metric("Fit", f"{percent}%")
+
+            st.progress(score)
+
+def render_wireframe_from_variant(variant: dict):
+    st.subheader("🖼 Wireframe Preview")
+    st.markdown(
+        '<div class="section-caption">A visual mock layout generated from the approved blueprint.</div>',
+        unsafe_allow_html=True,
+    )
+
+    components = variant.get("components", [])
+    if not components:
+        st.info("No components available for preview.")
+        return
+
+    for comp in components:
+        name = comp.get("component_name", "Unknown Component")
+        summary = comp.get("content_summary", "Component preview")
+
+        if name == "Hero":
+            with st.container(border=True):
+                st.markdown('<div class="wireframe-label">HERO</div>', unsafe_allow_html=True)
+                st.markdown("### Headline Placeholder")
+                st.write("Supporting subheadline for the treatment or page purpose.")
+                btn1, btn2 = st.columns([1, 4])
+                with btn1:
+                    st.button("CTA", key=f"hero_cta_{name}")
+                with btn2:
+                    st.caption(summary)
+
+        elif name == "Treatment Overview Cards":
+            with st.container(border=True):
+                st.markdown('<div class="wireframe-label">TREATMENT OVERVIEW CARDS</div>', unsafe_allow_html=True)
+                c1, c2, c3 = st.columns(3)
+                c1.info("Card 1")
+                c2.info("Card 2")
+                c3.info("Card 3")
+                st.caption(summary)
+
+        elif name == "Safety Accordion":
+            with st.container(border=True):
+                st.markdown('<div class="wireframe-label">SAFETY ACCORDION</div>', unsafe_allow_html=True)
+                with st.expander("Possible side effects"):
+                    st.write("Safety content preview")
+                with st.expander("Warnings and precautions"):
+                    st.write("Safety content preview")
+                st.caption(summary)
+
+        elif name == "FAQ":
+            with st.container(border=True):
+                st.markdown('<div class="wireframe-label">FAQ</div>', unsafe_allow_html=True)
+                with st.expander("Common question 1"):
+                    st.write("Answer preview")
+                with st.expander("Common question 2"):
+                    st.write("Answer preview")
+                st.caption(summary)
+
+        elif name == "CTA Block":
+            with st.container(border=True):
+                st.markdown('<div class="wireframe-label">CTA BLOCK</div>', unsafe_allow_html=True)
+                st.write("Next-step guidance or conversion action.")
+                st.button("Talk to a doctor", key=f"cta_{name}")
+                st.caption(summary)
+
+        elif name == "Disclaimer Footer":
+            with st.container(border=True):
+                st.markdown('<div class="wireframe-label">DISCLAIMER FOOTER</div>', unsafe_allow_html=True)
+                st.caption("Regulatory and legal disclaimer preview")
+                st.caption(summary)
+
+        else:
+            with st.container(border=True):
+                st.markdown(f'<div class="wireframe-label">{name.upper()}</div>', unsafe_allow_html=True)
+                st.write(summary)
+
 
 # Top action bar
-title_col, action_col1, action_col2, action_col3 = st.columns([4, 1.2, 1.4, 1.4])
+title_col, action_col1, action_col2, action_col3 = st.columns([4, 1.2, 1.2, 1.2])
 
 with title_col:
     st.title("🧠 BlueprintAI")
@@ -358,7 +682,7 @@ with action_col3:
     else:
         st.button("Download MD", disabled=True, use_container_width=True)
 
-# Brief input stays global
+# Global brief input
 st.subheader("Describe the webpage you want to generate")
 st.caption("Provide the audience, purpose and compliance sensitivity.")
 
@@ -393,11 +717,12 @@ if st.session_state.approved_variant:
 
 main_tabs = st.tabs(
     [
-        "1️⃣ Generate Blueprint",
+        "1️⃣ Blueprint",
         "2️⃣ Show Variants",
         "3️⃣ Compliance & Review",
         "4️⃣ Evidence",
         "5️⃣ Developer Handoff",
+        "6️⃣ Wireframe Preview",
     ]
 )
 
@@ -414,12 +739,16 @@ with main_tabs[1]:
         st.info("Generate a blueprint first.")
     else:
         st.subheader("📐 Blueprint Variants")
+
+        render_pattern_reasoning(st.session_state.result)
+        st.divider()
         st.markdown(
             '<div class="section-caption">Review the options and approve the best page structure.</div>',
             unsafe_allow_html=True,
         )
 
         variants = st.session_state.result.get("variants", [])
+        best_idx = get_best_variant_index(variants)
         if not variants:
             st.info("No variants returned.")
         else:
@@ -434,13 +763,23 @@ with main_tabs[2]:
     if not st.session_state.result:
         st.info("Generate a blueprint first.")
     else:
-        left, right = st.columns([1, 1])
+        flags = st.session_state.result.get("compliance_flags", {})
+        review = st.session_state.result.get("human_review_required", [])
 
-        with left:
-            render_compliance_flags(st.session_state.result.get("compliance_flags", []))
 
-        with right:
-            render_human_review(st.session_state.result.get("human_review_required", []))
+        render_compliance_summary(flags)
+
+        st.divider()
+
+        render_compliance_flags(flags)
+
+        st.divider()
+
+        render_human_review(review)
+
+        st.divider()
+
+        render_compliance_status(flags)
 
 with main_tabs[3]:
     if not st.session_state.result:
@@ -463,6 +802,17 @@ with main_tabs[4]:
             st.success(f"Using approved variant: {approved.get('pattern_name', 'Selected Variant')}")
             render_page_spec(st.session_state.result.get("page_specification", {}))
             st.caption("Ideally, developer handoff should be generated after blueprint approval.")
+
+with main_tabs[5]:
+    if not st.session_state.result:
+        st.info("Generate a blueprint first.")
+    else:
+        approved = st.session_state.get("approved_variant")
+
+        if not approved:
+            st.info("Approve a variant in the Variants tab to preview the generated page layout.")
+        else:
+            render_wireframe_from_variant(approved)
 
 st.markdown("---")
 st.caption("BlueprintAI — AI-assisted design-to-delivery acceleration")
