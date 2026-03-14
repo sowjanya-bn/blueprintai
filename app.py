@@ -687,7 +687,7 @@ st.subheader("Describe the webpage you want to generate")
 st.caption("Provide the audience, purpose and compliance sensitivity.")
 
 brief = st.text_area(
-    "",
+    "Project brief",
     height=180,
     placeholder="Create a patient-facing webpage for a new migraine treatment in the UK...",
     value=st.session_state.brief,
