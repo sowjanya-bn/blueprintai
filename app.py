@@ -986,6 +986,26 @@ with main_tabs[5]:
 
         kg = st.session_state.result.get("knowledge_graph") if st.session_state.result else None
 
+        # If a blueprint exists but the KG is missing or empty, attempt to rebuild it from available data.
+        if st.session_state.result and (not kg or not kg.get("nodes")):
+            st.warning("Knowledge graph not present or empty — attempting to rebuild from current blueprint data.")
+            try:
+                from knowledge.graph_builder import build_graph, serialize_graph
+
+                requirements = st.session_state.result.get("requirements", {})
+                variants = st.session_state.result.get("variants", [])
+                retrieved = st.session_state.result.get("retrieved_evidence", [])
+
+                G = build_graph(requirements, variants, retrieved)
+                serialized = serialize_graph(G)
+                # store back into session result for future renders
+                st.session_state.result.setdefault("knowledge_graph", serialized)
+                kg = serialized
+                st.success("Knowledge graph rebuilt from current blueprint data.")
+            except Exception as e:
+                st.error(f"Failed to rebuild knowledge graph: {e}")
+                st.info("Knowledge graph will appear here after blueprint generation.")
+
         if not kg or not kg.get("nodes"):
             st.info("Knowledge graph will appear here after blueprint generation.")
         else:
