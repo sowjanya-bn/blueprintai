@@ -398,6 +398,10 @@ P --> Q[Continuous Feedback Loop]
 
 The Explainability Layer provides transparency into system behaviour.
 
+**Vendored Assets**
+- **vis-network**: Vendored minified file at `components/streamlit_pyvis/frontend/build/vis-network.min.js` (version 9.1.2). License: Apache-2.0 or MIT (dual-licensed). Committed to branch `beta` to ensure the Streamlit custom component works in network-restricted environments.
+
+
 ## Phase 1–3 Implementation Summary
 
 This repository contains the Phase 1–3 research prototype of Blueprint AI. Below is a concise summary of what each phase implements and where to look in the codebase.
