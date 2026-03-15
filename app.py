@@ -687,7 +687,7 @@ def render_wireframe_from_variant(variant: dict):
         st.info("No components available for preview.")
         return
 
-    for comp in components:
+    for idx, comp in enumerate(components):
         name = comp.get("component_name", "Unknown Component")
         summary = comp.get("content_summary", "Component preview")
 
@@ -698,7 +698,7 @@ def render_wireframe_from_variant(variant: dict):
                 st.write("Supporting subheadline for the treatment or page purpose.")
                 btn1, btn2 = st.columns([1, 4])
                 with btn1:
-                    st.button("CTA", key=f"hero_cta_{name}")
+                    st.button("CTA", key=f"hero_cta_{idx}_{name}")
                 with btn2:
                     st.caption(summary)
 
@@ -733,7 +733,7 @@ def render_wireframe_from_variant(variant: dict):
             with st.container(border=True):
                 st.markdown('<div class="wireframe-label">CTA BLOCK</div>', unsafe_allow_html=True)
                 st.write("Next-step guidance or conversion action.")
-                st.button("Talk to a doctor", key=f"cta_{name}")
+                st.button("Talk to a doctor", key=f"cta_{idx}_{name}")
                 st.caption(summary)
 
         elif name == "Disclaimer Footer":
