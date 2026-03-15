@@ -69,23 +69,21 @@ flowchart TD
 
 A[Client Brief & Context Inputs]
 
-A --> B[Context Processing Layer]
+A --> B[Input & Context Layer]
 
-B --> C[Knowledge & Retrieval Layer<br/>(Knowledge Graph / RAG)]
+B --> C[Knowledge & Retrieval Layer]
 
-C --> D[Multi-Agent Reasoning Layer]
+C --> D[Intelligence & Multi-Agent Orchestration]
 
-D --> E[Content Generation Layer]
+D --> E[Delivery / Generation Layer]
 
-E --> F[Compliance Validation Layer]
+E --> F[Validation Layer]
 
-F --> G[Policy & Governance Layer]
+F --> G[Governance Layer]
 
 G --> H[Explainability & Audit Layer]
 
-H --> I[Human-in-the-Loop Review]
-
-F -- Feedback --> E
+H --> I[Human Review Layer]
 ```
 
 ---
