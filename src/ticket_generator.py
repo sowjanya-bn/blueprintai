@@ -1,4 +1,6 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
+import os
+import requests
 
 
 def _severity_from_issue(issue: Dict) -> str:
@@ -85,3 +87,62 @@ def tickets_to_markdown(tickets: List[Dict]) -> str:
         md_lines.append("\n---\n")
 
     return "\n".join(md_lines)
+
+
+def _ticket_to_issue_body(ticket: Dict) -> str:
+    parts = []
+    parts.append(f"### Description\n\n{ticket.get('description','No description provided.')}")
+    parts.append(f"\n### Suggested Fix\n\n{ticket.get('suggested_fix','')}")
+    if ticket.get('rationale'):
+        parts.append("\n### Rationale / Evidence\n")
+        for r in ticket.get('rationale'):
+            parts.append(f"- {r}")
+    parts.append(f"\n**Affected component**: {ticket.get('affected_component','')}\n")
+    parts.append(f"\n**Owner hint**: {ticket.get('owner_hint','')}")
+    return "\n".join(parts)
+
+
+def create_github_issue(repo_full_name: str, title: str, body: str, labels: Optional[List[str]] = None, token_env: str = "GITHUB_TOKEN") -> Dict:
+    """Create a GitHub issue in the given `owner/repo` using a token from `token_env`.
+
+    Returns the JSON response from GitHub for the created issue.
+    """
+    token = os.getenv(token_env)
+    if not token:
+        raise EnvironmentError(f"GitHub token not found in environment variable {token_env}")
+
+    url = f"https://api.github.com/repos/{repo_full_name}/issues"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+    }
+    payload = {"title": title, "body": body}
+    if labels:
+        payload["labels"] = labels
+
+    resp = requests.post(url, json=payload, headers=headers, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def create_github_issues_from_tickets(tickets: List[Dict], repo_full_name: str, token_env: str = "GITHUB_TOKEN") -> List[Dict]:
+    """Create one GitHub issue per ticket and return list of issue metadata (url, number, title).
+
+    Labels applied: `category`, `severity` when present.
+    """
+    created = []
+    for t in tickets:
+        title = t.get("title")
+        body = _ticket_to_issue_body(t)
+        labels = []
+        if t.get("category"):
+            labels.append(t.get("category"))
+        if t.get("severity"):
+            labels.append(t.get("severity"))
+        try:
+            issue = create_github_issue(repo_full_name, title, body, labels=labels or None, token_env=token_env)
+            created.append({"url": issue.get("html_url"), "number": issue.get("number"), "title": issue.get("title")})
+        except Exception as e:
+            # include failure info inline so callers can surface errors
+            created.append({"error": str(e), "title": title})
+    return created
