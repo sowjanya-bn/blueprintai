@@ -1144,6 +1144,7 @@ main_tabs = st.tabs(
         "5️⃣ Developer Handoff",
         "6️⃣ Wireframe Preview",
         "7️⃣ Knowledge Graph",
+        "8️⃣ Governance",
     ]
 )
 
@@ -1350,6 +1351,27 @@ with main_tabs[5]:
 
             with st.expander("Show raw graph JSON"):
                 st.json(kg)
+
+    with main_tabs[7]:
+        st.subheader("🏛️ Governance Findings")
+        st.markdown(
+            '<div class="section-caption">Governance drift detection results highlighting deprecated, restricted, or off-system components.</div>',
+            unsafe_allow_html=True,
+        )
+
+        g_issues = st.session_state.result.get("governance_issues") if st.session_state.result else None
+
+        if not g_issues:
+            st.success("No governance issues detected.")
+        else:
+            for idx, gi in enumerate(g_issues, start=1):
+                with st.container():
+                    st.markdown(f"**{idx}. {gi.get('title')}**")
+                    st.write(gi.get("description"))
+                    if gi.get("affected_component"):
+                        st.markdown(f"- Affected component: **{gi.get('affected_component')}**")
+                    st.markdown(f"- Recommendation: {gi.get('recommendation')}")
+                    st.divider()
 
 st.markdown("---")
 st.caption("BlueprintAI — AI-assisted design-to-delivery acceleration")
