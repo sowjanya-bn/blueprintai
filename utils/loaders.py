@@ -29,10 +29,12 @@ def load_compliance_rules() -> dict:
 
 
 def load_brand(brand_name: str) -> dict:
-    p = ROOT / "knowledge" / "brands" / f"{brand_name}.json"
+    # brand files are named like brand_{brand_name}.json
+    p = ROOT / "knowledge" / "brands" / f"brand_{brand_name}.json"
     return _read_json(p)
 
 
 def load_market(market_name: str) -> dict:
-    p = ROOT / "knowledge" / "markets" / f"{market_name}.json"
+    # market files are named like market_{market_name}.json
+    p = ROOT / "knowledge" / "markets" / f"market_{market_name}.json"
     return _read_json(p)
