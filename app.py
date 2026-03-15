@@ -1145,6 +1145,7 @@ main_tabs = st.tabs(
         "6️⃣ Wireframe Preview",
         "7️⃣ Knowledge Graph",
         "8️⃣ Governance",
+        "9️⃣ Explainability",
     ]
 )
 
@@ -1372,6 +1373,33 @@ with main_tabs[5]:
                         st.markdown(f"- Affected component: **{gi.get('affected_component')}**")
                     st.markdown(f"- Recommendation: {gi.get('recommendation')}")
                     st.divider()
+
+    with main_tabs[8]:
+        st.subheader("🧾 Explainability")
+        st.markdown(
+            '<div class="section-caption">Decision traces, rationale and evidence for major decisions.</div>',
+            unsafe_allow_html=True,
+        )
+
+        expl = st.session_state.result.get("explainability") if st.session_state.result else None
+
+        if not expl or not expl.get("records"):
+            st.info("Explainability records will appear here after blueprint generation.")
+        else:
+            for idx, rec in enumerate(expl.get("records", []), start=1):
+                with st.expander(f"{idx}. {rec.get('decision')}"):
+                    st.markdown(f"**Confidence:** {rec.get('confidence')}")
+                    st.markdown("**Evidence**")
+                    for e in rec.get("evidence", []):
+                        st.write(f"- {e}")
+                    st.markdown("**Rules Applied**")
+                    for r in rec.get("rules_applied", []):
+                        st.write(f"- {r}")
+                    if rec.get("human_review"):
+                        st.markdown(f"**Human Review:** {rec.get('human_review')}")
+
+            with st.expander("Show decision traces (raw)"):
+                st.json(expl.get("decision_traces", []))
 
 st.markdown("---")
 st.caption("BlueprintAI — AI-assisted design-to-delivery acceleration")
