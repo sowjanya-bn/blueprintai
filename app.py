@@ -1689,7 +1689,7 @@ with main_tabs[6]:
 with main_tabs[7]:
     st.subheader("🏛️ Governance Findings")
     st.markdown(
-        '<div class="section-caption">Governance drift detection results highlighting deprecated, restricted, or off-system components.</div>',
+        '<div class="section-caption">Deprecated component usage, design token drift, off-system patterns, and access-control violations across all generated artefacts.</div>',
         unsafe_allow_html=True,
     )
 
@@ -1698,14 +1698,58 @@ with main_tabs[7]:
     if not g_issues:
         st.success("No governance issues detected.")
     else:
-        for idx, gi in enumerate(g_issues, start=1):
-            with st.container():
-                st.markdown(f"**{idx}. {gi.get('title')}**")
-                st.write(gi.get("description"))
-                if gi.get("affected_component"):
-                    st.markdown(f"- Affected component: **{gi.get('affected_component')}**")
-                st.markdown(f"- Recommendation: {gi.get('recommendation')}")
-                st.divider()
+        _CATEGORY_META = {
+            "deprecated":  {"icon": "🚫", "label": "Deprecated Components",        "color": "error"},
+            "token_drift": {"icon": "🎨", "label": "Design Token Drift",           "color": "warning"},
+            "off_system":  {"icon": "⚠️", "label": "Off-System Patterns",          "color": "warning"},
+            "restricted":  {"icon": "🔒", "label": "Restricted Components",        "color": "error"},
+            "unapproved":  {"icon": "🔶", "label": "Unapproved Components",        "color": "info"},
+        }
+        CATEGORY_ORDER = ["deprecated", "token_drift", "off_system", "restricted", "unapproved"]
+
+        by_category: dict = {}
+        for gi in g_issues:
+            cat = gi.get("category", "other")
+            by_category.setdefault(cat, []).append(gi)
+
+        # Summary row
+        summary_cols = st.columns(len(_CATEGORY_META))
+        for col, cat in zip(summary_cols, CATEGORY_ORDER):
+            count = len(by_category.get(cat, []))
+            meta = _CATEGORY_META[cat]
+            col.metric(f"{meta['icon']} {meta['label']}", count)
+
+        st.divider()
+
+        for cat in CATEGORY_ORDER:
+            cat_issues = by_category.get(cat, [])
+            if not cat_issues:
+                continue
+            meta = _CATEGORY_META[cat]
+            st.markdown(f"### {meta['icon']} {meta['label']}")
+            for gi in cat_issues:
+                severity = gi.get("severity", "medium")
+                sev_icon = "🔴" if severity == "high" else ("🟡" if severity == "medium" else "🔵")
+                with st.expander(f"{sev_icon} **{gi.get('title')}**"):
+                    st.write(gi.get("description"))
+                    cols = st.columns(2)
+                    if gi.get("affected_component"):
+                        cols[0].markdown(f"**Component:** `{gi.get('affected_component')}`")
+                    if gi.get("artefact_sources"):
+                        cols[1].markdown(f"**Found in:** {gi.get('artefact_sources')}")
+                    st.markdown("**Recommendation**")
+                    st.info(gi.get("recommendation"))
+
+        # Any issues from unknown categories (future-proofing)
+        other = [gi for cat, lst in by_category.items() if cat not in _CATEGORY_META for gi in lst]
+        if other:
+            st.markdown("### 🔍 Other Findings")
+            for gi in other:
+                with st.expander(f"**{gi.get('title')}**"):
+                    st.write(gi.get("description"))
+                    if gi.get("affected_component"):
+                        st.markdown(f"**Component:** `{gi.get('affected_component')}`")
+                    st.info(gi.get("recommendation"))
 
 with main_tabs[8]:
     st.subheader("🧾 Explainability")

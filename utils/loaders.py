@@ -14,6 +14,13 @@ def _read_json(path: Path) -> Any:
         return json.load(f)
 
 
+def load_prompt(name: str) -> str:
+    """Load a prompt template from the prompts/ directory by filename (without path)."""
+    p = ROOT / "prompts" / name
+    with open(p, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def load_design_system() -> dict:
     p = ROOT / "knowledge" / "design_system.json"
     return _read_json(p)

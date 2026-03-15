@@ -1,15 +1,19 @@
 {
+  "version": "3.2.0",
+  "released": "2026-01-15",
   "components": [
     {
       "name": "Hero",
+      "status": "stable",
       "purpose": "Prominent page introduction with headline, subhead and CTA",
-      "use_when": ["high-level value proposition", "lead capture"],
-      "avoid_when": ["sensitive clinical claims"],
-      "accessibility_notes": ["Ensure heading hierarchy", "Contrast for CTA"],
+      "use_when": ["high-level value proposition", "lead capture", "campaign landing", "patient-facing education"],
+      "avoid_when": ["sensitive clinical claims", "dense documentation-only pages"],
+      "accessibility_notes": ["Ensure heading hierarchy", "Contrast for CTA", "Use one H1 per page"],
       "approved_brands": ["blueprint_fit", "blueprint_legal"]
     },
     {
       "name": "FeatureGrid",
+      "status": "stable",
       "purpose": "Display product or service features in a grid",
       "use_when": ["multiple benefits to showcase"],
       "avoid_when": ["single-feature focus"],
@@ -18,6 +22,7 @@
     },
     {
       "name": "SignupForm",
+      "status": "stable",
       "purpose": "Collect user contact details or signups",
       "use_when": ["lead capture", "trial signup"],
       "avoid_when": ["collecting health data without consent"],
@@ -26,11 +31,91 @@
     },
     {
       "name": "DisclaimerFooter",
+      "status": "stable",
       "purpose": "Show regulatory disclaimers and privacy links",
       "use_when": ["regulated products", "medical content"],
       "avoid_when": [],
-      "accessibility_notes": ["Provide text alternatives"],
+      "accessibility_notes": ["Provide text alternatives", "Maintain readable contrast"],
       "approved_brands": ["blueprint_legal"]
+    },
+    {
+      "name": "Treatment Overview Cards",
+      "status": "experimental",
+      "purpose": "Explain treatment features in a scannable card layout",
+      "use_when": ["explaining benefits", "patient education pages", "simplifying complex medical concepts"],
+      "avoid_when": ["when only one concept needs explanation"],
+      "accessibility_notes": ["Keep headings short and descriptive"],
+      "approved_brands": []
+    },
+    {
+      "name": "Safety Accordion",
+      "status": "stable",
+      "purpose": "Display safety or risk information in expandable sections",
+      "use_when": ["medical or treatment pages", "regulatory disclosures", "side effects and warnings"],
+      "avoid_when": ["critical emergency information that must always be visible"],
+      "accessibility_notes": ["Accordion must support keyboard navigation", "Expanded state must be announced"],
+      "approved_brands": ["blueprint_legal"]
+    },
+    {
+      "name": "FAQ",
+      "status": "stable",
+      "purpose": "Answer common user questions in a scannable format",
+      "use_when": ["complex information", "patient-facing pages", "pages with expected user uncertainty"],
+      "avoid_when": ["very short pages with little supporting information"],
+      "accessibility_notes": ["Questions should be concise and meaningful"],
+      "approved_brands": ["blueprint_fit", "blueprint_legal"]
+    },
+    {
+      "name": "CTA Block",
+      "status": "stable",
+      "purpose": "Guide the user to the next step or primary conversion action",
+      "use_when": ["conversion", "appointment booking", "contact actions"],
+      "avoid_when": ["when next step is unclear or unsupported"],
+      "accessibility_notes": ["CTA text must be specific and action-oriented"],
+      "approved_brands": ["blueprint_fit", "blueprint_legal"]
+    },
+    {
+      "name": "LegacyBanner",
+      "status": "deprecated",
+      "deprecated_since": "2.0.0",
+      "replacement": "Hero",
+      "purpose": "Legacy top-of-page banner component superseded by Hero",
+      "use_when": [],
+      "avoid_when": ["all new implementations — use Hero instead"],
+      "accessibility_notes": [],
+      "approved_brands": []
+    },
+    {
+      "name": "OldContactForm",
+      "status": "deprecated",
+      "deprecated_since": "2.3.0",
+      "replacement": "SignupForm",
+      "purpose": "Legacy contact form superseded by SignupForm with built-in consent handling",
+      "use_when": [],
+      "avoid_when": ["all new implementations — use SignupForm instead"],
+      "accessibility_notes": [],
+      "approved_brands": []
     }
+  ],
+  "token_registry": [
+    {"id": "color.brand-primary",    "category": "color",      "value": "#0f4c81", "status": "stable"},
+    {"id": "color.brand-secondary",  "category": "color",      "value": "#1e293b", "status": "stable"},
+    {"id": "color.surface",          "category": "color",      "value": "#f8fafc", "status": "stable"},
+    {"id": "color.error",            "category": "color",      "value": "#dc2626", "status": "stable"},
+    {"id": "color.success",          "category": "color",      "value": "#16a34a", "status": "stable"},
+    {"id": "color.accent",           "category": "color",      "value": "#7ef2b3", "status": "stable"},
+    {"id": "color.neutral-100",      "category": "color",      "value": "#f1f5f9", "status": "stable"},
+    {"id": "color.neutral-900",      "category": "color",      "value": "#0f172a", "status": "stable"},
+    {"id": "color.old-primary",      "category": "color",      "value": "#1a56db", "status": "deprecated", "replaced_by": "color.brand-primary"},
+    {"id": "color.old-secondary",    "category": "color",      "value": "#6875f5", "status": "deprecated", "replaced_by": "color.brand-secondary"},
+    {"id": "font.base",              "category": "typography", "value": "Inter",   "status": "stable"},
+    {"id": "font.heading",           "category": "typography", "value": "Inter",   "status": "stable"},
+    {"id": "font.mono",              "category": "typography", "value": "JetBrains Mono", "status": "stable"},
+    {"id": "font.legacy-body",       "category": "typography", "value": "Open Sans", "status": "deprecated", "replaced_by": "font.base"},
+    {"id": "font.legacy-heading",    "category": "typography", "value": "Montserrat", "status": "deprecated", "replaced_by": "font.heading"},
+    {"id": "spacing.4",              "category": "spacing",    "value": "16px",    "status": "stable"},
+    {"id": "spacing.8",              "category": "spacing",    "value": "32px",    "status": "stable"},
+    {"id": "size.h1",                "category": "typography", "value": "48px",    "status": "stable"},
+    {"id": "size.body",              "category": "typography", "value": "16px",    "status": "stable"}
   ]
 }

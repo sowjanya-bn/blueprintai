@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 
-from typing import List, Dict, Any
-from utils.loaders import make_component_id
+from typing import List, Dict, Any, Optional
+from utils.loaders import make_component_id, load_prompt
+from src.llm import generate_json, is_available
 
 
 STRATEGIES: list[dict[str, Any]] = [
@@ -388,6 +389,40 @@ def _build_streamlit_template(page_blueprint: Dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _llm_enrich_variants(
+    brief: str,
+    requirements: Dict[str, Any],
+    variants: List[Dict[str, Any]],
+    retrieved: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Ask Gemini for context-aware variant descriptions and per-component content guidance.
+    Returns a dict keyed by strategy_key, or None if unavailable or on any error.
+    """
+    if not is_available():
+        return None
+    try:
+        template = load_prompt("generate_blueprint.txt")
+        all_component_names = sorted(
+            {c["component_name"] for v in variants for c in v.get("components", [])}
+        )
+        prompt = (
+            template
+            .replace("{brief}", brief or "")
+            .replace("{audience}", requirements.get("audience") or "general")
+            .replace("{market}", requirements.get("market") or "global")
+            .replace("{industry}", requirements.get("industry") or "general")
+            .replace("{compliance_sensitivity}", requirements.get("compliance_sensitivity") or "Low")
+            .replace("{component_names}", json.dumps(all_component_names))
+        )
+        raw = generate_json(prompt)
+        if not raw:
+            return None
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
 def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, Any]], num_variants: int = 3) -> Dict[str, Any]:
     # Simple rule-based blueprint generator that composes variants from retrieved components
     components = [r["component"]["name"] for r in retrieved]
@@ -430,7 +465,7 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
                 "component_name": name,
                 "component_id": comp_id or make_component_id(name),
                 "content_summary": match["evidence"][:200] if match else "",
-                "rationale": f"Selected by strategy {strategy['label']}",
+                "rationale": f"Selected by strategy {strategy['label']}",  # overwritten by LLM below
                 "confidence": confidence,
             })
 
@@ -460,17 +495,65 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
             "components": comps,
         })
 
-    pattern_reasoning = [
-        "Variants generated to explore different tradeoffs between conversion, content depth, and legal conservatism.",
-        f"Based on brand={requirements.get('brand')} and market={requirements.get('market')}",
-        "Fit score is a weighted heuristic (evidence match + structure coverage + brief alignment), not a conversion-rate prediction.",
-    ]
+    # ── LLM enrichment (best-effort; falls back to rule-based values) ────────
+    brief_text = requirements.get("brief", "")
+    enrichment = _llm_enrich_variants(brief_text, requirements, variants, retrieved)
+
+    if enrichment:
+        for variant in variants:
+            skey = variant.get("strategy_key", "")
+            vdata = enrichment.get(skey) or {}
+            if vdata.get("description"):
+                variant["description"] = vdata["description"]
+            if vdata.get("content_guidance"):
+                variant["content_guidance"] = vdata["content_guidance"]
+            comp_summaries: Dict[str, str] = vdata.get("component_summaries") or {}
+            for comp in variant.get("components", []):
+                cname = comp.get("component_name", "")
+                if comp_summaries.get(cname):
+                    comp["content_summary"] = comp_summaries[cname]
+                    comp["rationale"] = comp_summaries[cname]
+
+    if enrichment:
+        # Summarise the LLM's per-strategy descriptions into pattern_reasoning
+        pattern_reasoning = [
+            next(
+                (
+                    enrichment[skey]["description"]
+                    for skey in ("conversion_first", "content_rich", "conservative")
+                    if isinstance(enrichment.get(skey), dict) and enrichment[skey].get("description")
+                ),
+                "Variants generated to explore different tradeoffs between conversion, content depth, and legal conservatism.",
+            ),
+            f"Based on brand={requirements.get('brand')} and market={requirements.get('market')}",
+            "Fit score is a weighted heuristic (evidence match + structure coverage + brief alignment), not a conversion-rate prediction.",
+        ]
+        # Collect handoff notes from the best-fit strategy for page blueprints
+        handoff_from_llm = next(
+            (
+                enrichment[skey].get("handoff_notes")
+                for skey in ("conversion_first", "content_rich", "conservative")
+                if isinstance(enrichment.get(skey), dict) and enrichment[skey].get("handoff_notes")
+            ),
+            None,
+        )
+    else:
+        pattern_reasoning = [
+            "Variants generated to explore different tradeoffs between conversion, content depth, and legal conservatism.",
+            f"Based on brand={requirements.get('brand')} and market={requirements.get('market')}",
+            "Fit score is a weighted heuristic (evidence match + structure coverage + brief alignment), not a conversion-rate prediction.",
+        ]
+        handoff_from_llm = None
 
     strategy_definitions = {
         s["label"]: s["description"] for s in STRATEGIES
     }
 
+    # Update handoff_notes in page blueprints if LLM provided them
     page_blueprints = [_build_page_blueprint(variant, requirements) for variant in variants]
+    if handoff_from_llm:
+        for bp in page_blueprints:
+            bp["handoff_notes"] = handoff_from_llm
     component_compositions = [_build_component_composition(blueprint) for blueprint in page_blueprints]
 
     best_variant = max(
@@ -509,8 +592,12 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
         "requirements": {
             "audience": requirements.get("audience"),
             "market": requirements.get("market"),
+            "brand": requirements.get("brand"),
             "content_type": requirements.get("content_type"),
             "compliance_sensitivity": requirements.get("compliance_sensitivity"),
+            "industry": requirements.get("industry"),
+            "key_goals": requirements.get("key_goals"),
+            "brand_tone": requirements.get("brand_tone"),
         },
         "pattern_reasoning": pattern_reasoning,
         "strategy_definitions": strategy_definitions,
