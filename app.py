@@ -1256,6 +1256,53 @@ with main_tabs[4]:
             st.success(f"Using approved variant: {approved.get('pattern_name', 'Selected Variant')}")
             render_page_spec(st.session_state.result.get("page_specification", {}))
             st.caption("Ideally, developer handoff should be generated after blueprint approval.")
+            # Ticket draft generation (Phase 7 starter)
+            try:
+                # prefer package-style import
+                from src.ticket_generator import generate_ticket_drafts, tickets_to_markdown
+            except Exception:
+                # fallback: load module by path
+                import importlib.util
+                from pathlib import Path
+
+                spec = importlib.util.spec_from_file_location(
+                    "ticket_generator", Path.cwd() / "src" / "ticket_generator.py"
+                )
+                ticket_mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(ticket_mod)
+                generate_ticket_drafts = ticket_mod.generate_ticket_drafts
+                tickets_to_markdown = ticket_mod.tickets_to_markdown
+
+            tickets = []
+            try:
+                tickets = generate_ticket_drafts(st.session_state.result or {})
+            except Exception as e:
+                st.warning(f"Ticket generation failed: {e}")
+
+            if tickets:
+                st.divider()
+                st.subheader("🔧 Suggested Fixes & Ticket Drafts")
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    st.download_button("Download Tickets JSON", data=json.dumps(tickets, indent=2), file_name="tickets.json", mime="application/json")
+                with col2:
+                    md = tickets_to_markdown(tickets)
+                    st.download_button("Download Tickets MD", data=md, file_name="tickets.md", mime="text/markdown")
+
+                for i, t in enumerate(tickets, start=1):
+                    with st.expander(f"{i}. {t.get('title')}"):
+                        st.markdown(f"**Category**: {t.get('category')}  —  **Severity**: {t.get('severity')}")
+                        st.markdown("**Affected Component**: " + str(t.get("affected_component")))
+                        st.markdown("**Description**")
+                        st.write(t.get("description"))
+                        st.markdown("**Suggested Fix**")
+                        st.write(t.get("suggested_fix"))
+                        if t.get("rationale"):
+                            st.markdown("**Rationale / Evidence**")
+                            for r in t.get("rationale"):
+                                st.write(f"- {r}")
+                        st.markdown(f"**Owner hint**: {t.get('owner_hint')}")
+                        st.button("Copy ticket to clipboard", key=f"copy_ticket_{i}")
 
 with main_tabs[5]:
     if not st.session_state.result:
@@ -1319,16 +1366,22 @@ with main_tabs[5]:
                     edges.append({"source": e.get("source"), "target": e.get("target"), "title": str((e.get("attrs") or {}))})
 
                 # This calls the component; the frontend will return {selected_node: id} when clicked
-                result = streamlit_pyvis(nodes=nodes, edges=edges)
-                if result and isinstance(result, dict):
-                    clicked_node = result.get("selected_node")
+                    sel_node = st.session_state.get("kg_selected_node")
+                    result = streamlit_pyvis(nodes=nodes, edges=edges, selected_node=sel_node)
+                    if result and isinstance(result, dict):
+                        clicked_node = result.get("selected_node") or sel_node
 
             except Exception:
                 # fallback: static matplotlib visualization
                 try:
                     pos = nx.spring_layout(G, seed=42)
                     fig = plt.figure(figsize=(9, 6))
-                    nx.draw_networkx_nodes(G, pos, node_size=700, node_color="#7ef2b3")
+                    # color selected node differently when set in session
+                    selected_node = st.session_state.get("kg_selected_node")
+                    node_colors = []
+                    for n in G.nodes():
+                        node_colors.append("#f08a8a" if str(n) == str(selected_node) else "#7ef2b3")
+                    nx.draw_networkx_nodes(G, pos, node_size=700, node_color=node_colors)
                     nx.draw_networkx_edges(G, pos, arrowstyle="->", arrowsize=12)
                     nx.draw_networkx_labels(G, pos, font_size=8)
                     plt.axis("off")
@@ -1344,10 +1397,20 @@ with main_tabs[5]:
             if filter_type and filter_type != "all":
                 node_options = [n for n in node_options if ((next(filter(lambda x: x.get("id") == n, kg.get("nodes", [])) or {}).get("attrs") or {}).get("type") == filter_type)]
 
-            # allow selection from pyvis click or selector
-            selected = st.selectbox("Select node to inspect", options=node_options)
-            if not selected and clicked_node:
-                selected = clicked_node
+            # allow selection from pyvis click, session, or selector
+            preselect = None
+            if clicked_node:
+                preselect = clicked_node
+            elif st.session_state.get("kg_selected_node"):
+                preselect = st.session_state.get("kg_selected_node")
+
+            # determine index for selectbox
+            try:
+                default_index = node_options.index(preselect) if preselect in node_options else 0
+            except Exception:
+                default_index = 0
+
+            selected = st.selectbox("Select node to inspect", options=node_options, index=default_index)
 
             if selected:
                 # show node attrs
