@@ -8,6 +8,10 @@ from agents.retrieval_agent import retrieve_for_brief
 from agents.blueprint_generator import generate_variants
 from src.compliance_engine import ComplianceEngine
 from knowledge.graph_builder import build_graph, serialize_graph
+from validation.accessibility_validator import run_accessibility_validator
+from validation.brand_validator import run_brand_validator
+from validation.compliance_validator import run_compliance_validator
+from validation.security_validator import run_security_validator
 
 compliance_engine = ComplianceEngine()
 
@@ -32,4 +36,31 @@ def create_blueprint(brief: str) -> dict:
         data["knowledge_graph"] = serialize_graph(G)
     except Exception:
         data["knowledge_graph"] = {"nodes": [], "edges": []}
+    # 6. Run validators (Accessibility, Brand, Compliance, Security)
+    try:
+        accessibility_report = run_accessibility_validator(data)
+    except Exception:
+        accessibility_report = {"issues": [], "passed": False}
+
+    try:
+        brand_report = run_brand_validator(data)
+    except Exception:
+        brand_report = {"issues": [], "passed": False}
+
+    try:
+        compliance_report = run_compliance_validator(data)
+    except Exception:
+        compliance_report = {"issues": [], "passed": False}
+
+    try:
+        security_report = run_security_validator(data)
+    except Exception:
+        security_report = {"issues": [], "passed": False}
+
+    data["validation_reports"] = {
+        "accessibility": accessibility_report,
+        "brand": brand_report,
+        "compliance": compliance_report,
+        "security": security_report,
+    }
     return data
