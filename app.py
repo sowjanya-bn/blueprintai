@@ -686,6 +686,79 @@ def render_compliance_status(flags):
         st.success("✅ Compliance review completed")
 
 
+def render_composition_report(composition_report: dict, component_compositions: list):
+    st.subheader("🧱 Composition Validation")
+    st.markdown(
+        '<div class="section-caption">Structural ordering, pairing, and brand policy rules across all generated compositions.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not composition_report:
+        st.info("No composition report available.")
+        return
+
+    passed = composition_report.get("passed", False)
+    issues = composition_report.get("issues", [])
+    fail_issues = [i for i in issues if i.get("status") == "FAIL"]
+    warn_issues = [i for i in issues if i.get("status") == "WARN"]
+
+    status_col, meta_col = st.columns([1, 3])
+    with status_col:
+        if passed:
+            st.success("✅ All composition rules passed")
+        else:
+            st.error(f"❌ {len(fail_issues)} rule violation(s)")
+    with meta_col:
+        total_components = sum(len(c.get("components", [])) for c in component_compositions)
+        warn_label = f"  ·  {len(warn_issues)} warning(s)" if warn_issues else ""
+        st.markdown(
+            f"**{len(component_compositions)}** composition(s) · **{total_components}** component(s) total{warn_label}"
+        )
+
+    if component_compositions:
+        st.markdown("**Composition Order by Variant**")
+        for composition in component_compositions:
+            comps = composition.get("components", [])
+            names = [item.get("component", "?") for item in comps]
+            route = composition.get("route", "N/A")
+            with st.expander(f"{composition.get('variant_name', 'Variant')}  ·  `{route}`"):
+                for pos, name in enumerate(names, start=1):
+                    if pos == 1 and name == "Hero":
+                        icon = "🟢"
+                    elif name == "Disclaimer Footer" and pos == len(names):
+                        icon = "🔵"
+                    elif name == "Disclaimer Footer":
+                        icon = "🔴"
+                    else:
+                        icon = "⚪"
+                    st.markdown(f"{icon} **{pos}.** {name}")
+
+    if fail_issues:
+        st.markdown("**Rule Violations**")
+        for issue in fail_issues:
+            with st.expander(f"🚨 {issue.get('title')}  —  {issue.get('severity', '').title()}"):
+                st.markdown(f"**Rule:** `{issue.get('rule_triggered')}`")
+                st.write(issue.get("description"))
+                if issue.get("evidence"):
+                    st.code(issue.get("evidence"), language="text")
+                st.markdown(f"**Fix:** {issue.get('suggested_fix')}")
+                if issue.get("human_review_required"):
+                    st.warning("Human review required")
+
+    if warn_issues:
+        st.markdown("**Warnings**")
+        for issue in warn_issues:
+            with st.expander(f"⚠ {issue.get('title')}  —  {issue.get('severity', '').title()}"):
+                st.markdown(f"**Rule:** `{issue.get('rule_triggered')}`")
+                st.write(issue.get("description"))
+                if issue.get("evidence"):
+                    st.code(issue.get("evidence"), language="text")
+                st.markdown(f"**Fix:** {issue.get('suggested_fix')}")
+
+    if not issues:
+        st.success("No composition issues detected.")
+
+
 def render_validation_summary(reports: dict):
     st.subheader("🔎 Validation Summary")
     st.markdown(
@@ -1268,6 +1341,13 @@ with main_tabs[2]:
         # Validation summary (Accessibility, Brand, Compliance, Security)
         validation_reports = st.session_state.result.get("validation_reports", {})
         render_validation_summary(validation_reports)
+
+        st.divider()
+
+        # Dedicated composition validation panel
+        composition_report = validation_reports.get("composition", {})
+        component_compositions = st.session_state.result.get("component_compositions", [])
+        render_composition_report(composition_report, component_compositions)
 
         st.divider()
 

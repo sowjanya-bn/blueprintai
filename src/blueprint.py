@@ -11,6 +11,7 @@ from knowledge.graph_builder import build_graph, serialize_graph
 from validation.accessibility_validator import run_accessibility_validator
 from validation.brand_validator import run_brand_validator
 from validation.compliance_validator import run_compliance_validator
+from validation.composition_validator import run_composition_validator
 from validation.security_validator import run_security_validator
 from governance.drift_detector import detect_governance_drift
 from agents.explainability import build_explainability
@@ -277,6 +278,11 @@ def create_blueprint(brief: str) -> dict:
         compliance_report = {"issues": [], "passed": False}
 
     try:
+        composition_report = run_composition_validator(data)
+    except Exception:
+        composition_report = {"issues": [], "passed": False}
+
+    try:
         security_report = run_security_validator(data)
     except Exception:
         security_report = {"issues": [], "passed": False}
@@ -285,6 +291,7 @@ def create_blueprint(brief: str) -> dict:
         "accessibility": accessibility_report,
         "brand": brand_report,
         "compliance": compliance_report,
+        "composition": composition_report,
         "security": security_report,
     }
     # 7. Governance drift detection

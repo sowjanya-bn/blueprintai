@@ -1,0 +1,84 @@
+{
+  "rules": [
+    {
+      "id": "composition.hero_first",
+      "title": "Hero should lead the composition",
+      "description": "If a Hero component is present, it should appear as the first page section.",
+      "severity": "medium"
+    },
+    {
+      "id": "composition.signup_after_context",
+      "title": "Signup form should follow context",
+      "description": "Signup forms should not appear before a contextual component like Hero, FeatureGrid, FAQ, or Safety Accordion.",
+      "severity": "medium"
+    },
+    {
+      "id": "composition.disclaimer_last",
+      "title": "Disclaimer footer should be last",
+      "description": "If a Disclaimer Footer is present, it should be the final component in the page composition.",
+      "severity": "high"
+    },
+    {
+      "id": "composition.dependencies_backward_only",
+      "title": "Dependencies must reference earlier components",
+      "description": "Component dependencies should only point to components that appear earlier in the page order.",
+      "severity": "high"
+    }
+  ],
+  "pairing_rules": [
+    {
+      "id": "composition.signup_requires_hero_or_cta",
+      "title": "SignupForm must be accompanied by Hero or CTA Block",
+      "description": "A composition containing a SignupForm must also include a Hero or CTA Block to establish context and trust before data capture.",
+      "severity": "medium",
+      "trigger_component": "signupform",
+      "must_coexist_with": ["hero", "ctablock"]
+    },
+    {
+      "id": "composition.disclaimer_requires_signup_or_safety",
+      "title": "Disclaimer Footer should accompany a form or safety section",
+      "description": "A Disclaimer Footer placed without a SignupForm or Safety Accordion is likely orphaned. It should only appear alongside data-capture or risk-disclosure content.",
+      "severity": "low",
+      "trigger_component": "disclaimerfooter",
+      "must_coexist_with": ["signupform", "safetyaccordion"]
+    }
+  ],
+  "required_section_rules": [
+    {
+      "id": "composition.landing_page_requires_hero",
+      "title": "Landing pages must include a Hero section",
+      "description": "LandingPage compositions should always lead with a Hero to establish brand identity and primary messaging.",
+      "severity": "medium",
+      "page_types": ["landingpage", "landing page", "landing"],
+      "required_component": "hero"
+    },
+    {
+      "id": "composition.healthcare_requires_safety_accordion",
+      "title": "Healthcare pages must include a Safety Accordion",
+      "description": "Pages in healthcare or medical contexts must surface safety and risk disclosures through a Safety Accordion section.",
+      "severity": "high",
+      "industries": ["healthcare", "medical", "patient", "clinical"],
+      "required_component": "safetyaccordion"
+    }
+  ],
+  "brand_policies": [
+    {
+      "id": "composition.blueprint_legal_signup_needs_disclaimer",
+      "brand_id": "blueprint_legal",
+      "title": "Blueprint Legal: SignupForm must have Disclaimer Footer",
+      "description": "The Blueprint Legal brand requires all data-capture flows to close with a Disclaimer Footer for regulatory compliance.",
+      "severity": "high",
+      "trigger_component": "signupform",
+      "required_component": "disclaimerfooter"
+    },
+    {
+      "id": "composition.blueprint_fit_signup_needs_feature_grid",
+      "brand_id": "blueprint_fit",
+      "title": "Blueprint Fit: SignupForm should be preceded by FeatureGrid",
+      "description": "The Blueprint Fit brand convention requires a FeatureGrid before any SignupForm to set product value context before data capture.",
+      "severity": "medium",
+      "trigger_component": "signupform",
+      "required_component": "featuregrid"
+    }
+  ]
+}

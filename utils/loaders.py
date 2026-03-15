@@ -29,6 +29,11 @@ def load_compliance_rules() -> dict:
     return _read_json(p)
 
 
+def load_composition_rules() -> dict:
+    p = ROOT / "knowledge" / "composition_rules.json"
+    return _read_json(p)
+
+
 def load_brand(brand_name: str) -> dict:
     # brand files are named like brand_{brand_name}.json
     p = ROOT / "knowledge" / "brands" / f"brand_{brand_name}.json"
@@ -39,6 +44,12 @@ def load_market(market_name: str) -> dict:
     # market files are named like market_{market_name}.json
     p = ROOT / "knowledge" / "markets" / f"market_{market_name}.json"
     return _read_json(p)
+
+
+def normalize_component_name(name: str) -> str:
+    if not name:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "", name.lower())
 
 
 def make_component_id(name: str) -> str:

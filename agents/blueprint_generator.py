@@ -408,6 +408,16 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
             if c in components and c not in order:
                 order.append(c)
 
+        # Enforce composition ordering constraints by construction so generated
+        # artefacts satisfy the same rules the composition validator enforces.
+        # Hero must lead; Disclaimer Footer must close.
+        if "Hero" in order:
+            order.remove("Hero")
+            order.insert(0, "Hero")
+        if "Disclaimer Footer" in order:
+            order.remove("Disclaimer Footer")
+            order.append("Disclaimer Footer")
+
         # build components with summaries and confidence based on retrieved scores
         for name in order:
             match = next((r for r in retrieved if r["component"]["name"] == name), None)
