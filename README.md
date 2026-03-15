@@ -398,6 +398,49 @@ P --> Q[Continuous Feedback Loop]
 
 The Explainability Layer provides transparency into system behaviour.
 
+## Phase 1–3 Implementation Summary
+
+This repository contains the Phase 1–3 research prototype of Blueprint AI. Below is a concise summary of what each phase implements and where to look in the codebase.
+
+- **Phase 1 — Foundation**
+    - Project scaffold, Pydantic data models: `models/schemas.py`.
+    - Local knowledge JSON files: `knowledge/` (design system, accessibility rules, compliance rules, brands, markets).
+    - Basic JSON loaders: `utils/loaders.py`.
+    - Streamlit scaffold and UI shell: `app.py` (initial UI and tab layout).
+    - Run instructions: `pip install -r requirements.txt` and `streamlit run app.py`.
+
+- **Phase 2 — Multi-Agent Pipeline (local rule-based)**
+    - `agents/brief_analyzer.py`: heuristics to extract structured requirements from a client brief.
+    - `agents/retrieval_agent.py`: brand-aware wrapper around the semantic retriever (`src/retriever.py`).
+    - `agents/blueprint_generator.py`: simple rule-based blueprint generator producing 3 variants.
+    - Integration: `src/blueprint.py` now orchestrates analyse → retrieve → generate and attaches compliance output.
+
+- **Phase 3 — Knowledge Graph & Interactive Exploration**
+    - Knowledge-graph builder using NetworkX: `knowledge/graph_builder.py` (serializable graph with nodes and edges).
+    - Graph attached to blueprint outputs as `knowledge_graph` (serialized nodes/edges) by `src/blueprint.py`.
+    - Interactive inspection UI added to Streamlit (`app.py` tab "Knowledge Graph"): static visualization, node inspector, and raw JSON.
+    - Lightweight Streamlit custom component for robust interactive visualization: `components/streamlit_pyvis/` (frontend and Python wrapper). Build step documented below.
+
+### Build step for interactive component
+If you want the click-to-select interactive graph viewer, build the lightweight frontend once:
+
+```bash
+cd components/streamlit_pyvis/frontend
+npm install   # optional
+npm run build
+cd -
+```
+
+If you skip the build step the app will fall back to a static matplotlib visualization.
+
+### Files of interest
+- Orchestration and generators: `src/blueprint.py`, `agents/`
+- Retrieval & compliance: `src/retriever.py`, `src/compliance_engine.py`, `src/compliance_policies.py`
+- Knowledge: `knowledge/` and `data/components.json`
+- UI: `app.py`, `components/streamlit_pyvis/`
+
+Phase 4 will add validators (accessibility, brand, compliance, security) and richer explainability outputs. If you want to proceed, I can implement Phase 4 next.
+
 ## Getting started (Phase 1)
 
 Quick steps to run the Phase 1 prototype locally:
