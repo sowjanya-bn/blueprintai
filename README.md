@@ -728,3 +728,58 @@ Potential future extensions include:
 This repository is intended for **academic and research purposes**.
 
 ---
+
+**Recent Work (Mar 15, 2026)**
+
+- **Phases Completed**: Phase 1 → Phase 6 implemented (foundation, multi-agent pipeline, knowledge graph + interactive viewer, validators, governance drift detection, explainability).
+- **New modules added**: `src/ticket_generator.py` (ticket draft generator), `agents/explainability.py` (polished explainability records), multiple `validation/*` validators, `governance/drift_detector.py`.
+- **App enhancements (`app.py`)**: explainability export (JSON/MD), "Jump to graph" wiring (stores `kg_selected_node`), ticket draft UI + downloads, `safe_serialize_for_download()` helper for reliable `st.download_button`, KG auto-rebuild attempt and user-facing messages, deterministic widget keys and key-audit fixes.
+- **Component improvements**: `components/streamlit_pyvis/` updates — frontend (`index.html`, `index.js`, `style.css`) now supports a `selected_node` prop, highlights/focuses nodes, and includes local/CDN fallback for `vis-network`. Python wrapper accepts `selected_node` and returns clicked node.
+- **Retrieval & IDs**: retrieval results now include stable `component_id` values (helper `utils/loaders.make_component_id`) and `agents/blueprint_generator.py` includes `component_id` on variant components for robust cross-references.
+- **Knowledge graph**: `knowledge/graph_builder.py` now prefers `component_id` values when creating nodes and edges and maps names→ids for reliable edges.
+- **Explainability**: explainability records now reference `component_id` where possible, include confidence, rationale, rules applied, evidence, and human-review hints; `explainability_to_markdown()` helper added for exports.
+
+**Run / Build Notes**
+
+- Interactive graph component requires the small frontend build. From the component folder run:
+
+```bash
+cd components/streamlit_pyvis/frontend
+npm run build
+```
+
+- For offline / restricted environments: place `vis-network.min.js` into `components/streamlit_pyvis/frontend/build/` (the README UI will attempt a CDN fallback, but a local copy avoids proxy issues):
+
+```bash
+mkdir -p components/streamlit_pyvis/frontend/build
+curl -fSL -o components/streamlit_pyvis/frontend/build/vis-network.min.js https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js
+```
+
+- If `curl`/`npm` are not available in your environment I can vendor `vis-network.min.js` into the repo on your behalf — say the word and I'll add it.
+
+**Known Issues & Troubleshooting**
+
+- If the Knowledge Graph area reports the component-loading problem or an empty KG, the app now attempts to rebuild the KG from the current blueprint; if that fails it prints the underlying error (use that trace for debugging). Common causes:
+    - malformed JSON in `knowledge/` (fixed earlier for `design_system.json`) — ensure all `knowledge/*.json` parse cleanly
+    - missing frontend vendor file (`vis-network.min.js`) or blocked CDN access — follow the build/download steps above
+
+- Streamlit widget key collisions were a source of runtime errors; I audited and converted keys to deterministic, context-prefixed forms and added `component_id` on components for long-term stability.
+
+**Files of note (delta)**
+
+- `app.py` — explainability exports, ticket drafts, KG wiring, safe-serialize helper, UI changes
+- `components/streamlit_pyvis/` — frontend `index.js`, `index.html`, Python wrapper updated to accept `selected_node`
+- `src/ticket_generator.py` — ticket draft generation + MD exporter
+- `utils/loaders.py` — `make_component_id(name)` helper
+- `agents/retrieval_agent.py` — attach `component_id` to retrieved components
+- `agents/blueprint_generator.py` — include `component_id` in generated variant components
+- `knowledge/graph_builder.py` — prefer `component_id` and robust edge creation
+- `agents/explainability.py` — prefer `component_id` in linked components and evidence
+
+If you'd like, I can now:
+
+- Vendor `vis-network.min.js` into `components/streamlit_pyvis/frontend/build/` and commit it so interactive graphs never rely on CDN access.
+- Start Phase 7 (automated suggested fixes → ticket drafts integration with GitHub/Jira export).
+- Run the Streamlit app here and exercise the KG flow end-to-end and fix remaining runtime issues.
+
+Tell me which of the above you'd like next and I'll proceed.
