@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "id": "compliance.personal_data_requires_consent",
+      "title": "Personal data requires consent",
+      "description": "If a form collects personal data in the EU, explicit consent UI must be present.",
+      "severity": "high",
+      "conditions": {"market": "EU", "collects_personal_data": true}
+    },
+    {
+      "id": "compliance.privacy_link_required",
+      "title": "Privacy link required",
+      "description": "All pages that collect data must link to a privacy policy.",
+      "severity": "medium",
+      "conditions": {"collects_personal_data": true}
+    }
+  ]
+}

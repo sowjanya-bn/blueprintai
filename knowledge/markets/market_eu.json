@@ -1,0 +1,6 @@
+{
+  "market": "EU",
+  "gdpr": true,
+  "privacy_strength": "strong",
+  "notes": "EU requires explicit consent for personal data collection and strong privacy notices."
+}

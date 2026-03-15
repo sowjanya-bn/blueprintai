@@ -1,0 +1,10 @@
+{
+  "brand_id": "blueprint_fit",
+  "display_name": "Blueprint Fit",
+  "approved_components": ["Hero", "FeatureGrid", "SignupForm"],
+  "restricted_components": ["DisclaimerFooter"],
+  "tokens": {
+    "colors": {"primary": "#0f766e", "accent": "#7ef2b3"},
+    "typography": {"base": "Inter", "heading": "Inter"}
+  }
+}
