@@ -420,6 +420,23 @@ streamlit run app.py
 
 Phase 1 includes the core data models, local knowledge JSON files, and a Streamlit scaffold. Subsequent phases will add the multi-agent orchestration, validators, and knowledge-graph reasoning.
 
+## Phase 3 — Knowledge Graph & Component
+
+This prototype includes a lightweight interactive knowledge-graph viewer implemented as a Streamlit custom component.
+
+To build the component frontend (required for the interactive viewer):
+
+```bash
+cd components/streamlit_pyvis/frontend
+npm install   # optional if you don't need to run the build script
+npm run build
+cd -
+```
+
+The `npm run build` step simply copies the frontend files into `components/streamlit_pyvis/frontend/build/` which is used by the Python component wrapper. After this, restart the Streamlit app.
+
+If you prefer not to build the component, the app falls back to a static matplotlib visualization.
+
 The system can explain:
 
 - why a component was selected  

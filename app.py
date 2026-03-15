@@ -847,8 +847,31 @@ with main_tabs[5]:
             except Exception:
                 G = None
 
-            # Visualization (best-effort)
-            if G and plt:
+            # Prefer JS-based interactive pyvis visualization when available
+            clicked_node = None
+            # Prefer using the new lightweight Streamlit custom component if available
+            clicked_node = None
+            try:
+                from components.streamlit_pyvis import streamlit_pyvis
+
+                nodes = []
+                edges = []
+                for n in kg.get("nodes", []):
+                    nid = n.get("id")
+                    label = (n.get("attrs") or {}).get("name") or nid
+                    title = "\n".join([f"{k}: {v}" for k, v in (n.get("attrs") or {}).items()])
+                    nodes.append({"id": nid, "label": label, "title": title})
+
+                for e in kg.get("edges", []):
+                    edges.append({"source": e.get("source"), "target": e.get("target"), "title": str((e.get("attrs") or {}))})
+
+                # This calls the component; the frontend will return {selected_node: id} when clicked
+                result = streamlit_pyvis(nodes=nodes, edges=edges)
+                if result and isinstance(result, dict):
+                    clicked_node = result.get("selected_node")
+
+            except Exception:
+                # fallback: static matplotlib visualization
                 try:
                     pos = nx.spring_layout(G, seed=42)
                     fig = plt.figure(figsize=(9, 6))
@@ -858,10 +881,7 @@ with main_tabs[5]:
                     plt.axis("off")
                     st.pyplot(fig)
                 except Exception:
-                    st.warning("Graph visualization unavailable (rendering error).")
-            else:
-                if not nx or not plt:
-                    st.warning("Graph visualization unavailable (missing dependencies).")
+                    st.warning("Graph visualization unavailable (missing dependencies or rendering error).")
 
             # Interactive exploration: node selector, node details, neighbors
             node_options = [n.get("id") for n in kg.get("nodes", [])]
@@ -871,7 +891,10 @@ with main_tabs[5]:
             if filter_type and filter_type != "all":
                 node_options = [n for n in node_options if ((next(filter(lambda x: x.get("id") == n, kg.get("nodes", [])) or {}).get("attrs") or {}).get("type") == filter_type)]
 
+            # allow selection from pyvis click or selector
             selected = st.selectbox("Select node to inspect", options=node_options)
+            if not selected and clicked_node:
+                selected = clicked_node
 
             if selected:
                 # show node attrs
