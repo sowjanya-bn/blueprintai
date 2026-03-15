@@ -441,6 +441,44 @@ If you skip the build step the app will fall back to a static matplotlib visuali
 
 Phase 4 will add validators (accessibility, brand, compliance, security) and richer explainability outputs. If you want to proceed, I can implement Phase 4 next.
 
+## Progress & Completed Phases
+
+This repository now includes completed Phase 1 through Phase 4 of the Blueprint AI prototype.
+
+- **Phase 1 — Foundation (completed)**
+    - Project scaffold, Pydantic models: `models/schemas.py`
+    - Knowledge JSONs: `knowledge/` (design system, accessibility rules, compliance rules, brands, markets)
+    - Basic loaders: `utils/loaders.py`
+    - Streamlit scaffold: `app.py`
+    - Data: `data/components.json`
+
+- **Phase 2 — Multi-Agent Pipeline (completed)**
+    - Brief analyzer: `agents/brief_analyzer.py`
+    - Retrieval agent: `agents/retrieval_agent.py`
+    - Blueprint generator: `agents/blueprint_generator.py`
+    - Integration: `src/blueprint.py` orchestrates analyse → retrieve → generate
+
+- **Phase 3 — Knowledge Graph & Interactive Viewer (completed)**
+    - Knowledge graph builder: `knowledge/graph_builder.py`
+    - Serialized graph included in blueprint output: `knowledge_graph`
+    - Interactive viewer: lightweight Streamlit custom component in `components/streamlit_pyvis/` (build step documented above)
+    - Streamlit UI: knowledge graph tab and node inspector in `app.py`
+
+- **Phase 4 — Validators (completed)**
+    - Accessibility validator: `validation/accessibility_validator.py`
+    - Brand validator: `validation/brand_validator.py`
+    - Compliance validator: `validation/compliance_validator.py`
+    - Security validator: `validation/security_validator.py`
+    - Validation summary surfaced in the UI (Compliance & Review tab)
+
+The prototype is runnable locally and demonstrates the end-to-end workflow from brief → blueprint → graph → validation with explainable, structured outputs.
+
+If you'd like, I can now:
+- Generate ticket drafts for failing issues (Phase 7)
+- Add richer explainability records and decision traces (Phase 6)
+- Improve UI polish and export capabilities
+
+
 ## Getting started (Phase 1)
 
 Quick steps to run the Phase 1 prototype locally:
