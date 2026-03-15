@@ -960,9 +960,46 @@ with main_tabs[4]:
                 st.markdown("_Optional: map ticket category and severity to existing repo labels (provide JSON)_")
                 col_map1, col_map2 = st.columns(2)
                 with col_map1:
-                    cat_map_text = st.text_area("Category -> Label mapping (JSON)", value="{}", key="gh_cat_map")
+                    cat_map_text = st.text_area("Category -> Label mapping (JSON)", value=st.session_state.get("gh_cat_map", "{}"), key="gh_cat_map")
                 with col_map2:
-                    sev_map_text = st.text_area("Severity -> Label mapping (JSON)", value="{}", key="gh_sev_map")
+                    sev_map_text = st.text_area("Severity -> Label mapping (JSON)", value=st.session_state.get("gh_sev_map", "{}"), key="gh_sev_map")
+
+                # Persistence controls for label mappings
+                st.markdown("**Persist label mappings for this project**")
+                save_col, load_col = st.columns(2)
+                label_map_path = ".blueprintai/label_mappings.json"
+                import os
+                import pathlib
+                project_root = pathlib.Path.cwd()
+                abs_label_map_path = project_root / label_map_path
+
+                with save_col:
+                    if st.button("Save mappings", key="save_label_mappings"):
+                        try:
+                            to_save = {
+                                "category": cat_map_text,
+                                "severity": sev_map_text
+                            }
+                            os.makedirs(abs_label_map_path.parent, exist_ok=True)
+                            with open(abs_label_map_path, "w") as f:
+                                json.dump(to_save, f, indent=2)
+                            st.success(f"Mappings saved to {label_map_path}")
+                        except Exception as e:
+                            st.error(f"Failed to save mappings: {e}")
+
+                with load_col:
+                    if st.button("Load mappings", key="load_label_mappings"):
+                        try:
+                            if abs_label_map_path.exists():
+                                with open(abs_label_map_path, "r") as f:
+                                    loaded = json.load(f)
+                                st.session_state["gh_cat_map"] = loaded.get("category", "{}")
+                                st.session_state["gh_sev_map"] = loaded.get("severity", "{}")
+                                st.success(f"Mappings loaded from {label_map_path}")
+                            else:
+                                st.warning(f"No mappings file found at {label_map_path}")
+                        except Exception as e:
+                            st.error(f"Failed to load mappings: {e}")
 
                 confirm = st.checkbox("I confirm I want to create GitHub issues for these tickets", key="gh_confirm")
                 create_btn = st.button("Create GitHub Issues", disabled=not confirm or not gh_repo)
