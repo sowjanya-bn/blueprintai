@@ -298,6 +298,32 @@ def render_evidence(evidence_items: list[dict]):
             st.markdown("**Retrieved Evidence Text**")
             st.code(evidence, language="text")
 
+
+def explainability_to_markdown(expl: dict) -> str:
+    md = "# Explainability Report\n\n"
+    if not expl:
+        return md + "No explainability records."
+
+    for rec in expl.get("records", []):
+        md += f"## {rec.get('decision')}\n"
+        md += f"- id: {rec.get('id')}\n"
+        md += f"- confidence: {rec.get('confidence')}\n"
+        if rec.get('rationale'):
+            md += f"- rationale: {rec.get('rationale')}\n"
+        if rec.get('evidence'):
+            md += "- evidence:\n"
+            for e in rec.get('evidence'):
+                md += f"  - {e}\n"
+        if rec.get('rules_applied'):
+            md += "- rules_applied:\n"
+            for r in rec.get('rules_applied'):
+                md += f"  - {r}\n"
+        if rec.get('linked_components'):
+            md += "- linked_components: " + ", ".join([str(x) for x in rec.get('linked_components')]) + "\n"
+        md += "\n"
+
+    return md
+
 def render_pattern_reasoning(result: dict):
     reasons = result.get("pattern_reasoning", [])
 
@@ -1387,6 +1413,15 @@ with main_tabs[5]:
             st.info("Explainability records will appear here after blueprint generation.")
         else:
             st.markdown(f"**Total decisions:** {len(expl.get('records', []))}")
+
+            # Export buttons
+            col_export_1, col_export_2 = st.columns([1, 1])
+            with col_export_1:
+                st.download_button("Download Explainability JSON", data=st.session_state.result.get("explainability"), file_name="explainability.json", mime="application/json")
+            with col_export_2:
+                md = explainability_to_markdown(expl)
+                st.download_button("Download Explainability MD", data=md, file_name="explainability.md", mime="text/markdown")
+
             for rec in expl.get("records", []):
                 title = rec.get("decision")
                 cid = rec.get("id")
@@ -1415,6 +1450,12 @@ with main_tabs[5]:
                     if linked:
                         st.markdown("**Linked Components**")
                         st.write(", ".join([str(x) for x in linked]))
+                        # add jump-to-graph button (select first linked component)
+                        if st.button(f"Jump to graph: {linked[0]}", key=f"jump_{cid}"):
+                            # graph node ids are stored as component::<name>
+                            node_id = f"component::{linked[0]}"
+                            st.session_state["kg_selected_node"] = node_id
+                            st.info("Selected node stored. Open the Knowledge Graph tab to view the node.")
 
                     if rec.get("human_review"):
                         st.markdown(f"**Human Review:** {rec.get('human_review')}")
