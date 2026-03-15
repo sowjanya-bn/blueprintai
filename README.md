@@ -471,6 +471,13 @@ This repository now includes completed Phase 1 through Phase 4 of the Blueprint 
     - Security validator: `validation/security_validator.py`
     - Validation summary surfaced in the UI (Compliance & Review tab)
 
+- **Phase 5 — Governance (completed)**
+    - Governance drift detector: `governance/drift_detector.py` — detects restricted, deprecated, off-system components and token drift.
+    - Integration in orchestration: `src/blueprint.py` attaches `governance_issues` to blueprint outputs.
+    - Streamlit UI: `app.py` includes an "8️⃣ Governance" tab to review governance findings.
+
+Phase 6 will add richer explainability records and decision traces; Phase 7 will focus on suggested fixes and ticket draft generation. If you'd like, I can start Phase 6 next.
+
 The prototype is runnable locally and demonstrates the end-to-end workflow from brief → blueprint → graph → validation with explainable, structured outputs.
 
 If you'd like, I can now:
