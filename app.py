@@ -723,6 +723,7 @@ main_tabs = st.tabs(
         "4️⃣ Evidence",
         "5️⃣ Developer Handoff",
         "6️⃣ Wireframe Preview",
+        "7️⃣ Knowledge Graph",
     ]
 )
 
@@ -813,6 +814,43 @@ with main_tabs[5]:
             st.info("Approve a variant in the Variants tab to preview the generated page layout.")
         else:
             render_wireframe_from_variant(approved)
+
+    with main_tabs[6]:
+        st.subheader("🧭 Knowledge Graph")
+        st.markdown(
+            '<div class="section-caption">Serialized knowledge graph showing nodes and edges used for traceability.</div>',
+            unsafe_allow_html=True,
+        )
+
+        kg = st.session_state.result.get("knowledge_graph") if st.session_state.result else None
+
+        if not kg or not kg.get("nodes"):
+            st.info("Knowledge graph will appear here after blueprint generation.")
+        else:
+            try:
+                import networkx as nx
+                import matplotlib.pyplot as plt
+
+                G = nx.DiGraph()
+                for n in kg.get("nodes", []):
+                    G.add_node(n.get("id"), **(n.get("attrs") or {}))
+
+                for e in kg.get("edges", []):
+                    G.add_edge(e.get("source"), e.get("target"), **(e.get("attrs") or {}))
+
+                pos = nx.spring_layout(G, seed=42)
+                fig = plt.figure(figsize=(9, 6))
+                nx.draw_networkx_nodes(G, pos, node_size=700, node_color="#7ef2b3")
+                nx.draw_networkx_edges(G, pos, arrowstyle="->", arrowsize=12)
+                nx.draw_networkx_labels(G, pos, font_size=8)
+                plt.axis("off")
+                st.pyplot(fig)
+
+            except Exception:
+                st.warning("Graph visualization unavailable (missing dependencies or rendering error).")
+
+            with st.expander("Show raw graph JSON"):
+                st.json(kg)
 
 st.markdown("---")
 st.caption("BlueprintAI — AI-assisted design-to-delivery acceleration")
