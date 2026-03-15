@@ -1,71 +1,98 @@
-// Minimal frontend for the Streamlit PyVis-style component
-const Streamlit = window.streamlitComponentReady ? window.streamlitComponentReady() : window.Streamlit;
+const Streamlit = window.Streamlit;
 
-function renderNetwork(nodes, edges) {
-  const container = document.getElementById('mynetwork');
-  const nodeDataset = new vis.DataSet(nodes.map(n => ({id: n.id, label: n.label || n.id, title: n.title || ''})));
-  const edgeDataset = new vis.DataSet(edges.map(e => ({from: e.source, to: e.target, title: e.title || ''})));
-  const data = { nodes: nodeDataset, edges: edgeDataset };
+let network = null;
+let nodeDataset = null;
+let edgeDataset = null;
 
-  const options = {
-    interaction: {hover: true},
-    nodes: {shape: 'dot', size: 16, font: {size: 12}},
-    edges: {arrows: 'to'},
-    physics: {stabilization: true}
+function toNode(item) {
+  return {
+    id: item.id,
+    label: item.label || item.id,
+    title: item.title || "",
   };
+}
 
-  const network = new vis.Network(container, data, options);
+function toEdge(item) {
+  return {
+    from: item.source,
+    to: item.target,
+    title: item.title || "",
+  };
+}
 
-  network.on('click', function(params) {
+function ensureNetwork(container) {
+  if (network) {
+    return;
+  }
+
+  nodeDataset = new vis.DataSet([]);
+  edgeDataset = new vis.DataSet([]);
+
+  network = new vis.Network(
+    container,
+    { nodes: nodeDataset, edges: edgeDataset },
+    {
+      interaction: { hover: true },
+      nodes: { shape: "dot", size: 16, font: { size: 12 } },
+      edges: { arrows: "to" },
+      physics: { stabilization: true },
+    }
+  );
+
+  network.on("click", function onClick(params) {
     if (params.nodes && params.nodes.length > 0) {
-      const nid = params.nodes[0];
-      // send clicked node id back to Streamlit
-      Streamlit.setComponentValue({selected_node: nid});
+      Streamlit.setComponentValue({ selected_node: params.nodes[0] });
     }
   });
 
-  // expose to window for debugging
-  window._blueprint_network = network;
-
-  return {network, nodeDataset, edgeDataset};
-
-  // expose to window for debugging
   window._blueprint_network = network;
 }
 
-// Wait for initial props from Python
-window.addEventListener('message', (event) => {
-  const data = event.data;
-  if (data && data.type === 'STREAMLIT:SET_COMPONENT_VALUE') return;
-});
+function highlightSelectedNode(selectedNode) {
+  const ids = nodeDataset.getIds();
+  if (ids.length > 0) {
+    nodeDataset.update(ids.map(function mapId(id) {
+      return { id: id, color: undefined };
+    }));
+  }
 
-// Using the streamlit component API to receive args
-if (window.Streamlit) {
-  window.Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, (event) => {
-    const args = window.Streamlit.getComponentArgs();
-    const nodes = (args && args.nodes) ? args.nodes : [];
-    const edges = (args && args.edges) ? args.edges : [];
-      const selected = args && args.selected_node ? args.selected_node : null;
-      const rendered = renderNetwork(nodes, edges);
+  if (selectedNode && nodeDataset.get(selectedNode)) {
+    nodeDataset.update({
+      id: selectedNode,
+      color: { background: "#f08a8a", border: "#aa0000" },
+    });
+    network.selectNodes([selectedNode]);
+    network.focus(selectedNode, { scale: 1.2, animation: { duration: 250 } });
+  }
+}
 
-      // if there's a preselected node, highlight it
-      try {
-        const {network, nodeDataset} = rendered;
-        // reset previous colors
-        nodeDataset.getIds().forEach(id => {
-          nodeDataset.update({id: id, color: undefined});
-        });
+function onRender(event) {
+  const args = (event && event.detail && event.detail.args) || {};
+  const nodes = Array.isArray(args.nodes) ? args.nodes : [];
+  const edges = Array.isArray(args.edges) ? args.edges : [];
+  const selected = args.selected_node || null;
 
-        if (selected) {
-          // apply highlight color
-          nodeDataset.update({id: selected, color: {background: '#f08a8a', border: '#aa0000'}});
-          network.selectNodes([selected]);
-          network.focus(selected, {scale: 1.2});
-        }
-      } catch (e) {
-        // ignore
-      }
+  const container = document.getElementById("mynetwork");
+  if (!container || typeof vis === "undefined") {
+    Streamlit.setFrameHeight();
+    return;
+  }
 
-      Streamlit.setFrameHeight();
-  });
+  ensureNetwork(container);
+
+  nodeDataset.clear();
+  edgeDataset.clear();
+  nodeDataset.add(nodes.map(toNode));
+  edgeDataset.add(edges.map(toEdge));
+
+  highlightSelectedNode(selected);
+  Streamlit.setFrameHeight();
+}
+
+if (Streamlit && Streamlit.events) {
+  Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+  Streamlit.setComponentReady();
+  Streamlit.setFrameHeight();
+} else {
+  console.error("Streamlit component library did not load.");
 }

@@ -15,8 +15,17 @@
           s.src = 'https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js';
           document.head.appendChild(s);
         }
-        // Note: Streamlit injects the component lib at runtime (window.Streamlit),
-        // so we don't need to load @streamlit/component-lib here and avoid CDN/proxy issues.
+      })();
+    </script>
+    <script src="./streamlit_component_lib.js"></script>
+    <script>
+      // Fallback if local component lib is not available.
+      (function(){
+        if(typeof window.Streamlit === 'undefined'){
+          var s = document.createElement('script');
+          s.src = 'https://unpkg.com/streamlit-component-lib/dist/index.js';
+          document.head.appendChild(s);
+        }
       })();
     </script>
   </head>

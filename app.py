@@ -80,6 +80,9 @@ if "approved_variant" not in st.session_state:
 if "flag_status" not in st.session_state:
     st.session_state.flag_status = {}
 
+if "review_gate_status" not in st.session_state:
+    st.session_state.review_gate_status = {}
+
 
 def safe_serialize_for_download(obj):
     """Return a bytes/str suitable for Streamlit download_button.
@@ -378,8 +381,9 @@ def explainability_to_markdown(expl: dict) -> str:
 
 def render_pattern_reasoning(result: dict):
     reasons = result.get("pattern_reasoning", [])
+    strategy_definitions = result.get("strategy_definitions", {})
 
-    if not reasons:
+    if not reasons and not strategy_definitions:
         return
 
     st.subheader("🧠 Why this page pattern?")
@@ -387,6 +391,11 @@ def render_pattern_reasoning(result: dict):
 
     for reason in reasons:
         st.write(f"• {reason}")
+
+    if strategy_definitions:
+        st.markdown("**Variant strategy meanings**")
+        for name, definition in strategy_definitions.items():
+            st.write(f"• **{name}**: {definition}")
 
 
 def compute_risk_score(count):
@@ -612,6 +621,170 @@ def render_validation_summary(reports: dict):
         st.success("No failing validation issues detected.")
 
 
+def count_validation_failures(reports: dict) -> int:
+    if not reports:
+        return 0
+    return sum(
+        1
+        for report in reports.values()
+        for issue in report.get("issues", [])
+        if issue.get("status") == "FAIL"
+    )
+
+
+def count_unresolved_compliance_flags(flags) -> int:
+    flag_items = flags.get("flags", []) if isinstance(flags, dict) else flags
+    unresolved = 0
+    for idx, flag in enumerate(flag_items):
+        status = st.session_state.flag_status.get(get_flag_id(flag, idx), "open")
+        if status in {"open", "needs_fix"}:
+            unresolved += 1
+    return unresolved
+
+
+def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
+    blockers: list[str] = []
+    architecture_plan = result.get("architecture_plan") or {}
+    validation_reports = result.get("validation_reports") or {}
+    compliance_flags = result.get("compliance_flags") or {}
+    governance_issues = result.get("governance_issues") or []
+    approved_variant = st.session_state.get("approved_variant")
+    gate_status = st.session_state.get("review_gate_status", {})
+
+    validation_failures = count_validation_failures(validation_reports)
+    unresolved_compliance = count_unresolved_compliance_flags(compliance_flags)
+
+    if gate_id == "architecture_review" and not architecture_plan:
+        blockers.append("Architecture plan has not been generated.")
+
+    if gate_id == "ux_review" and not approved_variant:
+        blockers.append("No variant has been approved in the Variants tab.")
+
+    if gate_id == "validation_review":
+        if validation_failures > 0:
+            blockers.append(f"{validation_failures} failing validation issue(s) remain.")
+        if unresolved_compliance > 0:
+            blockers.append(f"{unresolved_compliance} compliance flag(s) are unresolved.")
+        if governance_issues:
+            blockers.append(f"{len(governance_issues)} governance issue(s) still need review.")
+
+    if gate_id == "deployment_approval":
+        for prerequisite in ["architecture_review", "ux_review", "validation_review"]:
+            if gate_status.get(prerequisite) != "approved":
+                blockers.append(f"{prerequisite.replace('_', ' ').title()} is not approved.")
+        if validation_failures > 0:
+            blockers.append("Deployment blocked by failing validations.")
+        if unresolved_compliance > 0:
+            blockers.append("Deployment blocked by unresolved compliance flags.")
+
+    return blockers
+
+
+def render_architecture_plan(plan: dict):
+    st.subheader("🏗️ Architecture Plan")
+    st.markdown(
+        '<div class="section-caption">Large-scale system view covering services, deployment model, and release controls.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not plan:
+        st.info("Architecture plan will appear here after blueprint generation.")
+        return
+
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
+    metric_col1.metric("Domain", str(plan.get("domain", "general")).title())
+    metric_col2.metric("Market", plan.get("market", "global"))
+    metric_col3.metric("Core Services", len(plan.get("services", [])))
+
+    st.markdown(f"**Architecture Style:** {plan.get('architecture_style', 'N/A')}")
+    st.write(plan.get("system_summary", ""))
+
+    if plan.get("frontend_pattern"):
+        st.markdown(f"**Frontend Pattern:** {plan.get('frontend_pattern')}")
+
+    if plan.get("services"):
+        st.markdown("**Core Services**")
+        for service in plan.get("services", []):
+            with st.expander(service.get("name", "Service")):
+                st.write(service.get("responsibility", ""))
+                st.caption(service.get("scale_note", ""))
+
+    if plan.get("data_stores"):
+        st.markdown("**Data Stores**")
+        for item in plan.get("data_stores", []):
+            st.write(f"- {item}")
+
+    if plan.get("deployment_model"):
+        st.markdown("**Deployment Model**")
+        for item in plan.get("deployment_model", []):
+            st.write(f"- {item}")
+
+    if plan.get("non_functional_requirements"):
+        st.markdown("**Non-Functional Requirements**")
+        for item in plan.get("non_functional_requirements", []):
+            st.write(f"- {item}")
+
+
+def render_review_checkpoints(result: dict):
+    st.subheader("✅ Review Checkpoints")
+    st.markdown(
+        '<div class="section-caption">Explicit approval gates for architecture, UX, validation, and deployment.</div>',
+        unsafe_allow_html=True,
+    )
+
+    plan = result.get("architecture_plan") or {}
+    checkpoints = plan.get("approval_checkpoints", [])
+    if not checkpoints:
+        st.info("Approval checkpoints will appear here after architecture generation.")
+        return
+
+    gate_status = st.session_state.review_gate_status
+    approved_count = sum(1 for gate in checkpoints if gate_status.get(gate.get("id")) == "approved")
+    pending_count = len(checkpoints) - approved_count
+    deployment_ready = not get_gate_blockers(result, "deployment_approval")
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Approved Gates", approved_count)
+    c2.metric("Pending Gates", pending_count)
+    c3.metric("Deployment Ready", "Yes" if deployment_ready else "No")
+
+    for gate in checkpoints:
+        gate_id = gate.get("id")
+        status = gate_status.get(gate_id, "pending")
+        blockers = get_gate_blockers(result, gate_id)
+
+        with st.container(border=True):
+            header_col1, header_col2 = st.columns([4, 1])
+            with header_col1:
+                st.markdown(f"### {gate.get('label', gate_id)}")
+                st.caption(f"Owner: {gate.get('owner', 'Review Team')}")
+            with header_col2:
+                st.metric("Status", status.replace("_", " ").title())
+
+            st.write(gate.get("description", ""))
+
+            if blockers:
+                st.markdown("**Blocking Signals**")
+                for blocker in blockers:
+                    st.write(f"- {blocker}")
+            else:
+                st.success("No active blockers detected for this checkpoint.")
+
+            action_col1, action_col2, action_col3 = st.columns(3)
+            with action_col1:
+                if st.button("Approve", key=f"gate_approve_{gate_id}", disabled=bool(blockers), use_container_width=True):
+                    st.session_state.review_gate_status[gate_id] = "approved"
+                    st.rerun()
+            with action_col2:
+                if st.button("Needs Changes", key=f"gate_changes_{gate_id}", use_container_width=True):
+                    st.session_state.review_gate_status[gate_id] = "needs_changes"
+                    st.rerun()
+            with action_col3:
+                if st.button("Reset", key=f"gate_reset_{gate_id}", use_container_width=True):
+                    st.session_state.review_gate_status[gate_id] = "pending"
+                    st.rerun()
+
+
 
 def render_human_review(review_items):
 
@@ -656,6 +829,21 @@ def render_variant_fit_score(variant: dict, is_best: bool = False):
 
     st.markdown(f"**Fit Score — {percent}%**")
     st.progress(score)
+    st.caption("Heuristic fit to your brief, not a predicted conversion rate.")
+
+    breakdown = variant.get("fit_score_breakdown", {})
+    if isinstance(breakdown, dict) and breakdown:
+        evidence = breakdown.get("evidence_match", 0)
+        coverage = breakdown.get("structure_coverage", 0)
+        alignment = breakdown.get("brief_alignment", 0)
+
+        if isinstance(evidence, (int, float)) and isinstance(coverage, (int, float)) and isinstance(alignment, (int, float)):
+            st.caption(
+                "Breakdown: "
+                f"evidence match {int(max(0.0, min(1.0, float(evidence))) * 100)}%, "
+                f"structure coverage {int(max(0.0, min(1.0, float(coverage))) * 100)}%, "
+                f"brief alignment {int(max(0.0, min(1.0, float(alignment))) * 100)}%."
+            )
 
     if is_best:
         st.markdown(
@@ -808,6 +996,7 @@ if generate_clicked:
     else:
         st.session_state.brief = brief
         st.session_state.approved_variant = None
+        st.session_state.review_gate_status = {}
 
         with st.spinner("Generating blueprint..."):
             st.session_state.result = create_blueprint(brief)
@@ -830,7 +1019,7 @@ main_tabs = st.tabs(
         "2️⃣ Show Variants",
         "3️⃣ Compliance & Review",
         "4️⃣ Evidence",
-        "5️⃣ Developer Handoff",
+        "5️⃣ Architecture & Handoff",
         "6️⃣ Wireframe Preview",
         "7️⃣ Knowledge Graph",
         "8️⃣ Governance",
@@ -917,6 +1106,11 @@ with main_tabs[4]:
     if not st.session_state.result:
         st.info("Generate a blueprint first.")
     else:
+        render_architecture_plan(st.session_state.result.get("architecture_plan", {}))
+        st.divider()
+        render_review_checkpoints(st.session_state.result)
+        st.divider()
+
         approved = st.session_state.get("approved_variant")
 
         if not approved:
@@ -1139,169 +1333,167 @@ with main_tabs[5]:
         else:
             render_wireframe_from_variant(approved)
 
-    with main_tabs[6]:
-        st.subheader("🧭 Knowledge Graph")
-        st.markdown(
-            '<div class="section-caption">Structured traceability graph connecting requirements, pages, components, and policies.</div>',
-            unsafe_allow_html=True,
+with main_tabs[6]:
+    st.subheader("🧭 Knowledge Graph")
+    st.markdown(
+        '<div class="section-caption">Structured traceability graph connecting requirements, pages, components, and policies.</div>',
+        unsafe_allow_html=True,
+    )
+
+    kg = st.session_state.result.get("knowledge_graph") if st.session_state.result else None
+
+    if st.session_state.result and (not kg or not kg.get("nodes")):
+        st.warning("Knowledge graph not present or empty — attempting to rebuild from current blueprint data.")
+        try:
+            from knowledge.graph_builder import build_graph, serialize_graph
+
+            requirements = st.session_state.result.get("requirements", {})
+            variants = st.session_state.result.get("variants", [])
+            retrieved = st.session_state.result.get("retrieved_evidence", [])
+
+            G = build_graph(requirements, variants, retrieved)
+            kg = serialize_graph(G)
+            st.session_state.result["knowledge_graph"] = kg
+            st.success("Knowledge graph rebuilt from current blueprint data.")
+        except Exception as e:
+            st.error(f"Failed to rebuild knowledge graph: {e}")
+            kg = None
+
+    if not kg or not kg.get("nodes"):
+        st.info("Knowledge graph will appear here after blueprint generation.")
+    else:
+        nodes = kg.get("nodes", [])
+        edges = kg.get("edges", [])
+
+        # Summary cards
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Nodes", len(nodes))
+        c2.metric("Edges", len(edges))
+        c3.metric(
+            "Node types",
+            len(set((n.get("attrs") or {}).get("type", "unknown") for n in nodes))
         )
 
-        kg = st.session_state.result.get("knowledge_graph") if st.session_state.result else None
+        st.markdown("### Graph Summary")
 
-        if st.session_state.result and (not kg or not kg.get("nodes")):
-            st.warning("Knowledge graph not present or empty — attempting to rebuild from current blueprint data.")
-            try:
-                from knowledge.graph_builder import build_graph, serialize_graph
+        node_type_counts = {}
+        for n in nodes:
+            ntype = (n.get("attrs") or {}).get("type", "unknown")
+            node_type_counts[ntype] = node_type_counts.get(ntype, 0) + 1
 
-                requirements = st.session_state.result.get("requirements", {})
-                variants = st.session_state.result.get("variants", [])
-                retrieved = st.session_state.result.get("retrieved_evidence", [])
+        st.json({
+            "node_type_counts": node_type_counts,
+            "sample_node_ids": [n.get("id") for n in nodes[:5]],
+            "sample_edges": edges[:5],
+        })
 
-                G = build_graph(requirements, variants, retrieved)
-                kg = serialize_graph(G)
-                st.session_state.result["knowledge_graph"] = kg
-                st.success("Knowledge graph rebuilt from current blueprint data.")
-            except Exception as e:
-                st.error(f"Failed to rebuild knowledge graph: {e}")
-                kg = None
-
-        if not kg or not kg.get("nodes"):
-            st.info("Knowledge graph will appear here after blueprint generation.")
-        else:
-            nodes = kg.get("nodes", [])
-            edges = kg.get("edges", [])
-
-            # Summary cards
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Nodes", len(nodes))
-            c2.metric("Edges", len(edges))
-            c3.metric(
-                "Node types",
-                len(set((n.get("attrs") or {}).get("type", "unknown") for n in nodes))
-            )
-
-            st.markdown("### Graph Summary")
-
-            node_type_counts = {}
-            for n in nodes:
-                ntype = (n.get("attrs") or {}).get("type", "unknown")
-                node_type_counts[ntype] = node_type_counts.get(ntype, 0) + 1
-
-            st.json({
-                "node_type_counts": node_type_counts,
-                "sample_node_ids": [n.get("id") for n in nodes[:5]],
-                "sample_edges": edges[:5],
+        st.markdown("### Nodes")
+        node_rows = []
+        for n in nodes:
+            attrs = n.get("attrs") or {}
+            node_rows.append({
+                "id": n.get("id"),
+                "name": attrs.get("name", ""),
+                "type": attrs.get("type", "unknown"),
             })
+        st.dataframe(node_rows, use_container_width=True)
 
-            st.markdown("### Nodes")
-            node_rows = []
-            for n in nodes:
-                attrs = n.get("attrs") or {}
-                node_rows.append({
-                    "id": n.get("id"),
-                    "name": attrs.get("name", ""),
-                    "type": attrs.get("type", "unknown"),
-                })
-            st.dataframe(node_rows, use_container_width=True)
+        st.markdown("### Edges")
+        edge_rows = []
+        for e in edges:
+            attrs = e.get("attrs") or {}
+            edge_rows.append({
+                "source": e.get("source"),
+                "target": e.get("target"),
+                "relation": attrs.get("relation", str(attrs) if attrs else ""),
+            })
+        st.dataframe(edge_rows, use_container_width=True)
 
-            st.markdown("### Edges")
-            edge_rows = []
-            for e in edges:
-                attrs = e.get("attrs") or {}
-                edge_rows.append({
-                    "source": e.get("source"),
-                    "target": e.get("target"),
-                    "relation": attrs.get("relation", str(attrs) if attrs else ""),
-                })
-            st.dataframe(edge_rows, use_container_width=True)
+        with st.expander("Show raw graph JSON"):
+            st.json(kg)
 
-            with st.expander("Show raw graph JSON"):
-                st.json(kg)
+with main_tabs[7]:
+    st.subheader("🏛️ Governance Findings")
+    st.markdown(
+        '<div class="section-caption">Governance drift detection results highlighting deprecated, restricted, or off-system components.</div>',
+        unsafe_allow_html=True,
+    )
 
-    with main_tabs[7]:
-        st.subheader("🏛️ Governance Findings")
-        st.markdown(
-            '<div class="section-caption">Governance drift detection results highlighting deprecated, restricted, or off-system components.</div>',
-            unsafe_allow_html=True,
-        )
+    g_issues = st.session_state.result.get("governance_issues") if st.session_state.result else None
 
-        g_issues = st.session_state.result.get("governance_issues") if st.session_state.result else None
+    if not g_issues:
+        st.success("No governance issues detected.")
+    else:
+        for idx, gi in enumerate(g_issues, start=1):
+            with st.container():
+                st.markdown(f"**{idx}. {gi.get('title')}**")
+                st.write(gi.get("description"))
+                if gi.get("affected_component"):
+                    st.markdown(f"- Affected component: **{gi.get('affected_component')}**")
+                st.markdown(f"- Recommendation: {gi.get('recommendation')}")
+                st.divider()
 
-        if not g_issues:
-            st.success("No governance issues detected.")
-        else:
-            for idx, gi in enumerate(g_issues, start=1):
-                with st.container():
-                    st.markdown(f"**{idx}. {gi.get('title')}**")
-                    st.write(gi.get("description"))
-                    if gi.get("affected_component"):
-                        st.markdown(f"- Affected component: **{gi.get('affected_component')}**")
-                    st.markdown(f"- Recommendation: {gi.get('recommendation')}")
-                    st.divider()
+with main_tabs[8]:
+    st.subheader("🧾 Explainability")
+    st.markdown(
+        '<div class="section-caption">Decision traces, rationale and evidence for major decisions.</div>',
+        unsafe_allow_html=True,
+    )
 
-    with main_tabs[8]:
-        st.subheader("🧾 Explainability")
-        st.markdown(
-            '<div class="section-caption">Decision traces, rationale and evidence for major decisions.</div>',
-            unsafe_allow_html=True,
-        )
+    expl = st.session_state.result.get("explainability") if st.session_state.result else None
 
-        expl = st.session_state.result.get("explainability") if st.session_state.result else None
+    if not expl or not expl.get("records"):
+        st.info("Explainability records will appear here after blueprint generation.")
+    else:
+        st.markdown(f"**Total decisions:** {len(expl.get('records', []))}")
 
-        if not expl or not expl.get("records"):
-            st.info("Explainability records will appear here after blueprint generation.")
-        else:
-            st.markdown(f"**Total decisions:** {len(expl.get('records', []))}")
+        # Export buttons
+        col_export_1, col_export_2 = st.columns([1, 1])
+        with col_export_1:
+            st.download_button("Download Explainability JSON", data=safe_serialize_for_download(st.session_state.result.get("explainability")), file_name="explainability.json", mime="application/json")
+        with col_export_2:
+            md = explainability_to_markdown(expl)
+            st.download_button("Download Explainability MD", data=safe_serialize_for_download(md), file_name="explainability.md", mime="text/markdown")
 
-            # Export buttons
-            col_export_1, col_export_2 = st.columns([1, 1])
-            with col_export_1:
-                st.download_button("Download Explainability JSON", data=safe_serialize_for_download(st.session_state.result.get("explainability")), file_name="explainability.json", mime="application/json")
-            with col_export_2:
-                md = explainability_to_markdown(expl)
-                st.download_button("Download Explainability MD", data=safe_serialize_for_download(md), file_name="explainability.md", mime="text/markdown")
+        for rec in expl.get("records", []):
+            title = rec.get("decision")
+            cid = rec.get("id")
+            with st.expander(f"{title}  —  {cid}"):
+                conf = rec.get("confidence", 0.0)
+                st.markdown("**Confidence**")
+                st.progress(min(max(float(conf), 0.0), 1.0))
 
-            for rec in expl.get("records", []):
-                title = rec.get("decision")
-                cid = rec.get("id")
-                with st.expander(f"{title}  —  {cid}"):
-                    conf = rec.get("confidence", 0.0)
-                    st.markdown("**Confidence**")
-                    st.progress(min(max(float(conf), 0.0), 1.0))
+                if rec.get("rationale"):
+                    st.markdown("**Rationale**")
+                    st.write(rec.get("rationale"))
 
-                    if rec.get("rationale"):
-                        st.markdown("**Rationale**")
-                        st.write(rec.get("rationale"))
+                evs = rec.get("evidence", [])
+                if evs:
+                    st.markdown("**Evidence**")
+                    for e in evs:
+                        st.write(f"- {e}")
 
-                    evs = rec.get("evidence", [])
-                    if evs:
-                        st.markdown("**Evidence**")
-                        for e in evs:
-                            st.write(f"- {e}")
+                rules = rec.get("rules_applied", [])
+                if rules:
+                    st.markdown("**Rules Applied**")
+                    for r in rules:
+                        st.write(f"- {r}")
 
-                    rules = rec.get("rules_applied", [])
-                    if rules:
-                        st.markdown("**Rules Applied**")
-                        for r in rules:
-                            st.write(f"- {r}")
+                linked = rec.get("linked_components", [])
+                if linked:
+                    st.markdown("**Linked Components**")
+                    st.write(", ".join([str(x) for x in linked]))
+                    if st.button(f"Jump to graph: {linked[0]}", key=f"jump_expl_{cid}"):
+                        node_val = linked[0]
+                        if isinstance(node_val, str) and "::" in node_val:
+                            node_id = node_val
+                        else:
+                            node_id = f"component::{node_val}"
+                        st.session_state["kg_selected_node"] = node_id
+                        st.info("Selected node stored. Open the Knowledge Graph tab to view the node.")
 
-                    linked = rec.get("linked_components", [])
-                    if linked:
-                        st.markdown("**Linked Components**")
-                        st.write(", ".join([str(x) for x in linked]))
-                        # add jump-to-graph button (select first linked component)
-                        if st.button(f"Jump to graph: {linked[0]}", key=f"jump_expl_{cid}"):
-                            node_val = linked[0]
-                            # if it's already a namespaced id like component::hero, use directly
-                            if isinstance(node_val, str) and "::" in node_val:
-                                node_id = node_val
-                            else:
-                                node_id = f"component::{node_val}"
-                            st.session_state["kg_selected_node"] = node_id
-                            st.info("Selected node stored. Open the Knowledge Graph tab to view the node.")
-
-                    if rec.get("human_review"):
-                        st.markdown(f"**Human Review:** {rec.get('human_review')}")
+                if rec.get("human_review"):
+                    st.markdown(f"**Human Review:** {rec.get('human_review')}")
 
             with st.expander("Show decision traces (raw)"):
                 st.json(expl.get("decision_traces", []))

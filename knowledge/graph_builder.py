@@ -6,8 +6,19 @@ import networkx as nx
 from utils.loaders import load_design_system, load_compliance_rules, load_brand, load_market
 
 
+def _normalize_brand_id(brand_id: str | None) -> str | None:
+    """Normalize brand ids to canonical values used in knowledge files.
+
+    We persist brand ids without the "brand_" prefix (e.g. "blueprint_fit").
+    """
+    if not brand_id:
+        return None
+    return brand_id[6:] if brand_id.startswith("brand_") else brand_id
+
+
 def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], retrieved: List[Dict[str, Any]]) -> nx.DiGraph:
     G = nx.DiGraph()
+    brand_node_id = _normalize_brand_id(requirements.get("brand"))
 
     # Nodes: requirement, pages (variants), components, tokens, policies
     req_id = "requirement_1"
@@ -20,13 +31,14 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
     # Brand tokens (if available)
     brand_tokens = {}
     try:
-        if requirements.get("brand"):
-            b = load_brand(requirements.get("brand"))
+        if brand_node_id:
+            b = load_brand(brand_node_id)
             brand_tokens = b.get("tokens", {})
+            brand_node_id = _normalize_brand_id(b.get("brand_id") or brand_node_id)
             # Brand node
-            G.add_node(b.get("brand_id", requirements.get("brand")), type="brand", display_name=b.get("display_name"))
+            G.add_node(brand_node_id, type="brand", display_name=b.get("display_name"))
             # connect brand -> requirement
-            G.add_edge(b.get("brand_id", requirements.get("brand")), req_id, relation="brand_applied_to")
+            G.add_edge(brand_node_id, req_id, relation="brand_applied_to")
     except Exception:
         brand_tokens = {}
 
@@ -60,7 +72,11 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
         # connect to brand approval if applicable
         approved_brands = comp.get("approved_brands", [])
         for ab in approved_brands:
-            G.add_edge(f"brand_{ab}" if not ab.startswith("brand_") else ab, node_id, relation="brand_approves")
+            ab_id = _normalize_brand_id(ab)
+            if ab_id:
+                if not G.has_node(ab_id):
+                    G.add_node(ab_id, type="brand")
+                G.add_edge(ab_id, node_id, relation="brand_approves")
 
     # Add design system components as nodes (if not already present)
     for comp in design.get("components", []):
@@ -75,8 +91,8 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
             token_node = f"token::{token_type}::{tk_name}"
             G.add_node(token_node, type="design_token", token_type=token_type, name=tk_name, value=tk_value)
             # Connect brand -> token
-            if requirements.get("brand"):
-                G.add_edge(requirements.get("brand"), token_node, relation="brand_has_token")
+            if brand_node_id:
+                G.add_edge(brand_node_id, token_node, relation="brand_has_token")
 
     # Forms -> compliance obligations: detect common patterns
     market_gdpr = False
@@ -88,7 +104,10 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
         if any(k in name.lower() for k in ["form", "signup", "contact"]):
             form_node = f"form::{name}"
             G.add_node(form_node, type="form", name=name)
-            G.add_edge(comp_name_to_id.get(name, f"component::{name}"), form_node, relation="has_form")
+            source_component = comp_name_to_id.get(name, f"component::{name}")
+            if not G.has_node(source_component):
+                G.add_node(source_component, type="component", name=name)
+            G.add_edge(source_component, form_node, relation="has_form")
 
             # If market is EU/GDPR, add obligation node
             if market_gdpr:
@@ -109,6 +128,8 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
             cid = comp.get("component_id")
             if cname:
                 target = cid or f"component::{cname}"
+                if not G.has_node(target):
+                    G.add_node(target, type="component", name=cname)
                 G.add_edge(page_node, target, relation="uses_component")
 
     return G
