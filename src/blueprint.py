@@ -98,6 +98,74 @@ def _build_architecture_plan(brief: str, requirements: dict, retrieved: list[dic
     if collects_personal_data:
         data_stores.append("Consent/preference store with region-aware retention controls")
 
+    service_flow = [
+        {
+            "step": "Ingress and Experience Delivery",
+            "summary": "Users access the frontend through CDN or edge delivery, which forwards dynamic requests to the orchestration API.",
+        },
+        {
+            "step": "Brief Analysis and Retrieval",
+            "summary": "The orchestration API analyzes the brief, queries retrieval and policy services, and assembles domain and market context.",
+        },
+        {
+            "step": "Blueprint Generation",
+            "summary": "Generation services compose variants, architecture recommendations, and page specifications from retrieved evidence.",
+        },
+        {
+            "step": "Async Validation and Governance",
+            "summary": "Validation workers execute accessibility, brand, compliance, and security checks asynchronously, then publish outcomes to the audit store.",
+        },
+        {
+            "step": "Approval and Release",
+            "summary": "Review gates consume validation and governance results to approve UX, architecture, platform, security, and deployment readiness.",
+        },
+    ]
+
+    if collects_personal_data:
+        service_flow.insert(
+            4,
+            {
+                "step": "Consent and Privacy Processing",
+                "summary": "Personal-data capture requests are routed through consent and preference services before persistence or downstream processing.",
+            },
+        )
+
+    environment_promotion_policy = [
+        "Promote changes from development to preview only after unit and smoke checks pass.",
+        "Promote preview to staging only after architecture, UX, and validation checkpoints are approved.",
+        "Run full regression, security, and governance review in staging before production release.",
+        "Require explicit deployment approval with rollback owner and monitoring owner assigned before production rollout.",
+    ]
+
+    rollback_strategy = [
+        "Use immutable build artifacts and versioned releases so the previous known-good version can be restored quickly.",
+        "Deploy with progressive rollout or canary promotion to limit blast radius.",
+        "On health-check degradation, automatically halt rollout and revert traffic to the previous stable release.",
+        "Preserve approval and audit metadata for both failed and rolled-back releases.",
+    ]
+
+    monitoring_checklist = [
+        "API latency, error rate, and saturation dashboards for orchestration and validation services",
+        "Queue depth and worker failure alerts for asynchronous validators",
+        "Frontend performance, availability, and client error monitoring",
+        "Release health indicators tied to current deployment version",
+        "Audit alerts for failed approvals, policy drift, or repeated compliance exceptions",
+    ]
+
+    security_controls = [
+        "Centralized authentication and authorization for internal review and admin workflows",
+        "Secrets managed outside application code with environment-specific rotation",
+        "Encrypted transport between all services and encrypted storage for sensitive records",
+        "Least-privilege access to audit, consent, and retrieval stores",
+    ]
+
+    platform_controls = [
+        "Stateless service deployment behind load balancers",
+        "Autoscaling for orchestration APIs and queue workers",
+        "Environment-isolated configuration and release promotion pipeline",
+        "Centralized logging, metrics, and tracing across the platform",
+    ]
+
     approval_checkpoints = [
         {
             "id": "architecture_review",
@@ -118,6 +186,18 @@ def _build_architecture_plan(brief: str, requirements: dict, retrieved: list[dic
             "description": "Resolve validator failures, governance issues, and unresolved compliance flags before release.",
         },
         {
+            "id": "platform_review",
+            "label": "Platform Review",
+            "owner": "Platform Engineering",
+            "description": "Validate environment promotion, observability, scalability controls, and rollback readiness.",
+        },
+        {
+            "id": "security_review",
+            "label": "Security Review",
+            "owner": "Security Lead",
+            "description": "Validate authentication, secrets handling, data protection, and any unresolved security findings.",
+        },
+        {
             "id": "deployment_approval",
             "label": "Deployment Approval",
             "owner": "Release Manager",
@@ -135,11 +215,17 @@ def _build_architecture_plan(brief: str, requirements: dict, retrieved: list[dic
             f"with stateless APIs, async validation, and auditable approval gates."
         ),
         "frontend_pattern": "Edge-served web frontend backed by stateless orchestration APIs",
+        "service_flow": service_flow,
         "deployment_model": [
             "Development and preview environments for rapid iteration",
             "Staging environment with full validation and governance checks",
             "Production rollout with monitoring, alerting, and rollback support",
         ],
+        "environment_promotion_policy": environment_promotion_policy,
+        "rollback_strategy": rollback_strategy,
+        "monitoring_checklist": monitoring_checklist,
+        "security_controls": security_controls,
+        "platform_controls": platform_controls,
         "non_functional_requirements": [
             "Horizontal scalability for orchestration and validation services",
             "Auditability of approvals, policy checks, and explainability traces",

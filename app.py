@@ -632,6 +632,13 @@ def count_validation_failures(reports: dict) -> int:
     )
 
 
+def count_validator_failures(reports: dict, validator_name: str) -> int:
+    if not reports:
+        return 0
+    report = reports.get(validator_name, {}) or {}
+    return sum(1 for issue in report.get("issues", []) if issue.get("status") == "FAIL")
+
+
 def count_unresolved_compliance_flags(flags) -> int:
     flag_items = flags.get("flags", []) if isinstance(flags, dict) else flags
     unresolved = 0
@@ -652,10 +659,16 @@ def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
     gate_status = st.session_state.get("review_gate_status", {})
 
     validation_failures = count_validation_failures(validation_reports)
+    security_failures = count_validator_failures(validation_reports, "security")
     unresolved_compliance = count_unresolved_compliance_flags(compliance_flags)
 
-    if gate_id == "architecture_review" and not architecture_plan:
-        blockers.append("Architecture plan has not been generated.")
+    if gate_id == "architecture_review":
+        if not architecture_plan:
+            blockers.append("Architecture plan has not been generated.")
+        if not architecture_plan.get("service_flow"):
+            blockers.append("Service-to-service flow is missing.")
+        if not architecture_plan.get("services"):
+            blockers.append("Core services are not defined.")
 
     if gate_id == "ux_review" and not approved_variant:
         blockers.append("No variant has been approved in the Variants tab.")
@@ -668,14 +681,32 @@ def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
         if governance_issues:
             blockers.append(f"{len(governance_issues)} governance issue(s) still need review.")
 
+    if gate_id == "platform_review":
+        if gate_status.get("architecture_review") != "approved":
+            blockers.append("Architecture Review must be approved first.")
+        if not architecture_plan.get("environment_promotion_policy"):
+            blockers.append("Environment promotion policy is missing.")
+        if not architecture_plan.get("rollback_strategy"):
+            blockers.append("Rollback strategy is missing.")
+        if not architecture_plan.get("monitoring_checklist"):
+            blockers.append("Monitoring checklist is missing.")
+
+    if gate_id == "security_review":
+        if security_failures > 0:
+            blockers.append(f"{security_failures} failing security issue(s) remain.")
+        if not architecture_plan.get("security_controls"):
+            blockers.append("Security controls are not defined in the architecture plan.")
+
     if gate_id == "deployment_approval":
-        for prerequisite in ["architecture_review", "ux_review", "validation_review"]:
+        for prerequisite in ["architecture_review", "ux_review", "validation_review", "platform_review", "security_review"]:
             if gate_status.get(prerequisite) != "approved":
                 blockers.append(f"{prerequisite.replace('_', ' ').title()} is not approved.")
         if validation_failures > 0:
             blockers.append("Deployment blocked by failing validations.")
         if unresolved_compliance > 0:
             blockers.append("Deployment blocked by unresolved compliance flags.")
+        if security_failures > 0:
+            blockers.append("Deployment blocked by failing security findings.")
 
     return blockers
 
@@ -709,6 +740,12 @@ def render_architecture_plan(plan: dict):
                 st.write(service.get("responsibility", ""))
                 st.caption(service.get("scale_note", ""))
 
+    if plan.get("service_flow"):
+        st.markdown("**Service-to-Service Flow**")
+        for flow in plan.get("service_flow", []):
+            with st.expander(flow.get("step", "Flow Step")):
+                st.write(flow.get("summary", ""))
+
     if plan.get("data_stores"):
         st.markdown("**Data Stores**")
         for item in plan.get("data_stores", []):
@@ -718,6 +755,33 @@ def render_architecture_plan(plan: dict):
         st.markdown("**Deployment Model**")
         for item in plan.get("deployment_model", []):
             st.write(f"- {item}")
+
+    if plan.get("environment_promotion_policy"):
+        st.markdown("**Environment Promotion Policy**")
+        for item in plan.get("environment_promotion_policy", []):
+            st.write(f"- {item}")
+
+    if plan.get("rollback_strategy"):
+        st.markdown("**Rollback Strategy**")
+        for item in plan.get("rollback_strategy", []):
+            st.write(f"- {item}")
+
+    if plan.get("monitoring_checklist"):
+        st.markdown("**Monitoring Checklist**")
+        for item in plan.get("monitoring_checklist", []):
+            st.write(f"- {item}")
+
+    controls_col1, controls_col2 = st.columns(2)
+    with controls_col1:
+        if plan.get("platform_controls"):
+            st.markdown("**Platform Controls**")
+            for item in plan.get("platform_controls", []):
+                st.write(f"- {item}")
+    with controls_col2:
+        if plan.get("security_controls"):
+            st.markdown("**Security Controls**")
+            for item in plan.get("security_controls", []):
+                st.write(f"- {item}")
 
     if plan.get("non_functional_requirements"):
         st.markdown("**Non-Functional Requirements**")
