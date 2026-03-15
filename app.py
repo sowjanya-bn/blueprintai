@@ -80,6 +80,9 @@ if "approved_variant" not in st.session_state:
 if "flag_status" not in st.session_state:
     st.session_state.flag_status = {}
 
+if "governance_issue_status" not in st.session_state:
+    st.session_state.governance_issue_status = {}
+
 if "review_gate_status" not in st.session_state:
     st.session_state.review_gate_status = {}
 
@@ -846,6 +849,23 @@ def count_unresolved_compliance_flags(flags) -> int:
     return unresolved
 
 
+def get_governance_issue_id(issue: dict, idx: int) -> str:
+    category = str(issue.get("category", "other")).strip().lower().replace(" ", "_")
+    title = str(issue.get("title", f"issue_{idx}")).strip().lower().replace(" ", "_")
+    component = str(issue.get("affected_component", "")).strip().lower().replace(" ", "_")
+    return f"{category}:{title}:{component}:{idx}"
+
+
+def count_unresolved_governance_issues(issues: list[dict]) -> int:
+    unresolved = 0
+    for idx, issue in enumerate(issues or []):
+        issue_id = get_governance_issue_id(issue, idx)
+        status = st.session_state.governance_issue_status.get(issue_id, "open")
+        if status in {"open", "needs_fix"}:
+            unresolved += 1
+    return unresolved
+
+
 def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
     blockers: list[str] = []
     architecture_plan = result.get("architecture_plan") or {}
@@ -858,6 +878,7 @@ def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
     validation_failures = count_validation_failures(validation_reports)
     security_failures = count_validator_failures(validation_reports, "security")
     unresolved_compliance = count_unresolved_compliance_flags(compliance_flags)
+    unresolved_governance = count_unresolved_governance_issues(governance_issues)
 
     if gate_id == "architecture_review":
         if not architecture_plan:
@@ -875,8 +896,8 @@ def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
             blockers.append(f"{validation_failures} failing validation issue(s) remain.")
         if unresolved_compliance > 0:
             blockers.append(f"{unresolved_compliance} compliance flag(s) are unresolved.")
-        if governance_issues:
-            blockers.append(f"{len(governance_issues)} governance issue(s) still need review.")
+        if unresolved_governance > 0:
+            blockers.append(f"{unresolved_governance} governance issue(s) still need review.")
 
     if gate_id == "platform_review":
         if gate_status.get("architecture_review") != "approved":
@@ -902,6 +923,8 @@ def get_gate_blockers(result: dict, gate_id: str) -> list[str]:
             blockers.append("Deployment blocked by failing validations.")
         if unresolved_compliance > 0:
             blockers.append("Deployment blocked by unresolved compliance flags.")
+        if unresolved_governance > 0:
+            blockers.append("Deployment blocked by unresolved governance findings.")
         if security_failures > 0:
             blockers.append("Deployment blocked by failing security findings.")
 
@@ -1257,6 +1280,8 @@ if generate_clicked:
     else:
         st.session_state.brief = brief
         st.session_state.approved_variant = None
+        st.session_state.flag_status = {}
+        st.session_state.governance_issue_status = {}
         st.session_state.review_gate_status = {}
 
         with st.spinner("Generating blueprint..."):
@@ -1727,28 +1752,50 @@ with main_tabs[7]:
                 continue
             meta = _CATEGORY_META[cat]
             st.markdown(f"### {meta['icon']} {meta['label']}")
-            for gi in cat_issues:
+            for local_idx, gi in enumerate(cat_issues):
+                global_idx = g_issues.index(gi)
+                issue_id = get_governance_issue_id(gi, global_idx)
+                status = st.session_state.governance_issue_status.get(issue_id, "open")
                 severity = gi.get("severity", "medium")
                 sev_icon = "🔴" if severity == "high" else ("🟡" if severity == "medium" else "🔵")
                 with st.expander(f"{sev_icon} **{gi.get('title')}**"):
                     st.write(gi.get("description"))
-                    cols = st.columns(2)
+                    cols = st.columns(3)
                     if gi.get("affected_component"):
                         cols[0].markdown(f"**Component:** `{gi.get('affected_component')}`")
                     if gi.get("artefact_sources"):
                         cols[1].markdown(f"**Found in:** {gi.get('artefact_sources')}")
+                    cols[2].markdown(f"**Status:** {status.replace('_', ' ').title()}")
                     st.markdown("**Recommendation**")
                     st.info(gi.get("recommendation"))
+
+                    action_col1, action_col2, action_col3 = st.columns(3)
+                    with action_col1:
+                        if st.button("Mark Reviewed", key=f"gov_review_{issue_id}", use_container_width=True):
+                            st.session_state.governance_issue_status[issue_id] = "reviewed"
+                            st.rerun()
+                    with action_col2:
+                        if st.button("Waive", key=f"gov_waive_{issue_id}", use_container_width=True):
+                            st.session_state.governance_issue_status[issue_id] = "waived"
+                            st.rerun()
+                    with action_col3:
+                        if st.button("Needs Fix", key=f"gov_fix_{issue_id}", use_container_width=True):
+                            st.session_state.governance_issue_status[issue_id] = "needs_fix"
+                            st.rerun()
 
         # Any issues from unknown categories (future-proofing)
         other = [gi for cat, lst in by_category.items() if cat not in _CATEGORY_META for gi in lst]
         if other:
             st.markdown("### 🔍 Other Findings")
             for gi in other:
+                global_idx = g_issues.index(gi)
+                issue_id = get_governance_issue_id(gi, global_idx)
+                status = st.session_state.governance_issue_status.get(issue_id, "open")
                 with st.expander(f"**{gi.get('title')}**"):
                     st.write(gi.get("description"))
                     if gi.get("affected_component"):
                         st.markdown(f"**Component:** `{gi.get('affected_component')}`")
+                    st.caption(f"Status: {status.replace('_', ' ').title()}")
                     st.info(gi.get("recommendation"))
 
 with main_tabs[8]:
