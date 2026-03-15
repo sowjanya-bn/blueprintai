@@ -475,6 +475,65 @@ def render_compliance_status(flags):
         st.success("✅ Compliance review completed")
 
 
+def render_validation_summary(reports: dict):
+    st.subheader("🔎 Validation Summary")
+    st.markdown(
+        '<div class="section-caption">High-level pass/fail across validators and actionable issues.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not reports:
+        st.info("No validation reports available.")
+        return
+
+    # Determine pass/fail per validator
+    pass_list = [name for name, r in reports.items() if r.get("passed")]
+    fail_list = [name for name, r in reports.items() if not r.get("passed")]
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Passing Validators**")
+        if pass_list:
+            for p in pass_list:
+                st.success(p.title())
+        else:
+            st.info("None")
+
+    with col2:
+        st.markdown("**Failing/Attention Validators**")
+        if fail_list:
+            for f in fail_list:
+                st.error(f.title())
+        else:
+            st.info("None")
+
+    # Show detailed failing issues grouped by validator
+    st.divider()
+    st.markdown("**Details: Failing Issues**")
+    any_fail = False
+    for name, r in reports.items():
+        issues = r.get("issues", [])
+        failing = [i for i in issues if i.get("status") == "FAIL"]
+        if not failing:
+            continue
+        any_fail = True
+        with st.expander(f"{name.title()} — {len(failing)} failing issue(s)"):
+            for idx, issue in enumerate(failing, start=1):
+                st.markdown(f"**{idx}. {issue.get('title')}**  —  {issue.get('severity', '').title()}")
+                st.write(issue.get("description"))
+                st.markdown(f"**Rule:** {issue.get('rule_triggered')}")
+                if issue.get("evidence"):
+                    st.markdown("**Evidence**")
+                    st.code(issue.get("evidence"), language="text")
+                st.markdown("**Suggested Fix**")
+                st.write(issue.get("suggested_fix"))
+                if issue.get("human_review_required"):
+                    st.warning("Human review required")
+
+    if not any_fail:
+        st.success("No failing validation issues detected.")
+
+
 
 def render_human_review(review_items):
 
@@ -1128,8 +1187,13 @@ with main_tabs[2]:
         flags = st.session_state.result.get("compliance_flags", {})
         review = st.session_state.result.get("human_review_required", [])
 
-
         render_compliance_summary(flags)
+
+        st.divider()
+
+        # Validation summary (Accessibility, Brand, Compliance, Security)
+        validation_reports = st.session_state.result.get("validation_reports", {})
+        render_validation_summary(validation_reports)
 
         st.divider()
 
