@@ -951,6 +951,49 @@ with main_tabs[4]:
                     md = tickets_to_markdown(tickets)
                     st.download_button("Download Tickets MD", data=safe_serialize_for_download(md), file_name="tickets.md", mime="text/markdown")
 
+                # Phase 7: GitHub issue creation UI
+                st.markdown("---")
+                st.markdown("**Create GitHub issues from these ticket drafts**")
+                gh_repo = st.text_input("GitHub repo (owner/repo)", key="gh_repo", value="")
+                gh_token = st.text_input("GitHub token (optional — leave blank to use GITHUB_TOKEN env)", type="password", key="gh_token")
+                confirm = st.checkbox("I confirm I want to create GitHub issues for these tickets", key="gh_confirm")
+                create_btn = st.button("Create GitHub Issues", disabled=not confirm or not gh_repo)
+
+                if create_btn:
+                    try:
+                        # dynamic import to avoid hard dependency at app import time
+                        try:
+                            from src.ticket_generator import create_github_issues_from_tickets
+                        except Exception:
+                            import importlib.util
+                            from pathlib import Path
+                            spec = importlib.util.spec_from_file_location(
+                                "ticket_generator", Path.cwd() / "src" / "ticket_generator.py"
+                            )
+                            ticket_mod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(ticket_mod)
+                            create_github_issues_from_tickets = ticket_mod.create_github_issues_from_tickets
+
+                        token_env = "GITHUB_TOKEN"
+                        # If user provided a token in the widget, set it temporarily for the helper to pick up
+                        if gh_token:
+                            import os
+                            os.environ[token_env] = gh_token
+
+                        with st.spinner("Creating GitHub issues..."):
+                            created = create_github_issues_from_tickets(tickets, gh_repo, token_env=token_env)
+
+                        success_count = sum(1 for c in created if c.get("url"))
+                        st.success(f"Created {success_count} issues ({len(created)-success_count} errors)")
+                        for c in created:
+                            if c.get("url"):
+                                st.markdown(f"- [{c.get('title')}]({c.get('url')})")
+                            else:
+                                st.markdown(f"- Error creating '{c.get('title')}': {c.get('error')}")
+
+                    except Exception as e:
+                        st.error(f"Failed to create issues: {e}")
+
                 for i, t in enumerate(tickets, start=1):
                     with st.expander(f"{i}. {t.get('title')}"):
                         st.markdown(f"**Category**: {t.get('category')}  —  **Severity**: {t.get('severity')}")
