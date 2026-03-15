@@ -778,7 +778,7 @@ def render_wireframe_from_variant(variant: dict):
 
 
 # Top action bar
-title_col, action_col1 = st.columns([4, 2])
+title_col, action_col1 = st.columns([4, 1.2])
 
 with title_col:
     st.title("🧠 BlueprintAI")
@@ -860,16 +860,22 @@ with main_tabs[1]:
         )
 
         variants = st.session_state.result.get("variants", [])
-        best_idx = get_best_variant_index(variants)
-        if not variants:
-            st.info("No variants returned.")
-        else:
-            variant_tabs = st.tabs(
-                [v.get("pattern_name", f"Variant {i+1}") for i, v in enumerate(variants)]
-            )
-            for i, (tab, variant) in enumerate(zip(variant_tabs, variants), start=1):
-                with tab:
-                    render_variant_card(variant, i)
+
+        # Sort variants by fit score (highest first)
+        variants_sorted = sorted(
+            variants,
+            key=lambda v: v.get("fit_score", 0),
+            reverse=True,
+        )
+        best_idx = get_best_variant_index(variants_sorted)
+
+        variant_tabs = st.tabs(
+            [v.get("pattern_name", f"Variant {i + 1}") for i, v in enumerate(variants_sorted)]
+        )
+
+        for i, (tab, variant) in enumerate(zip(variant_tabs, variants_sorted), start=1):
+            with tab:
+                render_variant_card(variant, i)
 
 with main_tabs[2]:
     if not st.session_state.result:
