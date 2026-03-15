@@ -1,130 +1,90 @@
 # Blueprint AI
 
-> **A research prototype for AI-assisted orchestration of the web design and development lifecycle — from client brief to deployable web experience — with built-in validation, governance, and explainable decision making.**
+<p align="center">
+AI-assisted orchestration platform for accelerating the web design lifecycle while ensuring  
+<b>brand consistency, accessibility, compliance, and design-system governance.</b>
+</p>
 
 ---
 
 # Overview
 
-The **Blueprint AI** is a research prototype that explores how artificial intelligence can accelerate the **entire web design and delivery lifecycle**, rather than simply generating UI or code from prompts.
+**Blueprint AI** is a research prototype that explores how artificial intelligence can coordinate the **entire web design and delivery lifecycle**, rather than simply generating UI or code from prompts.
 
-Most current AI web tools focus on a simplified pipeline:
+Most AI web tools today operate on a narrow pipeline:
 
 ```
 Prompt → UI → Code
 ```
 
-While useful for prototyping, this approach does not address the broader workflow required in real-world web development, where teams must manage:
+However, real web development requires coordination across many stages including:
 
-* requirement interpretation
-* architecture planning
-* UX design
-* design-system integration
-* accessibility validation
-* regulatory compliance
-* security checks
-* deployment and maintenance
+- requirement interpretation  
+- architecture planning  
+- UX design  
+- design-system integration  
+- accessibility validation  
+- compliance checks  
+- security analysis  
+- deployment workflows  
+- long-term governance  
 
-The goal of this project is to design a system where **AI coordinates the workflow across these stages**, while humans retain control over key decisions.
-
-This repository contains a **prototype implementation** demonstrating how AI can assist with:
-
-* interpreting web project briefs
-* recommending design-system components
-* generating page blueprints
-* validating accessibility and compliance
-* detecting design-system drift
-* producing explainable reports and suggested fixes
+Blueprint AI proposes an **AI-assisted orchestration platform** where multiple specialised AI agents collaborate to transform a **client brief into a deployable web experience**, while ensuring that generated outputs remain **compliant, explainable, and aligned with design systems**.
 
 ---
 
-# Key Objectives
+# Key Capabilities
 
-The system is designed to address several challenges faced by organisations delivering web experiences at scale.
+The system demonstrates how AI can assist with:
 
-### Lifecycle Fragmentation
+- interpreting client briefs  
+- generating structured requirement specifications  
+- recommending design-system components  
+- generating page blueprints and code templates  
+- validating accessibility and regulatory compliance  
+- detecting design-system drift  
+- generating explainable reports  
+- recommending remediation actions  
+- supporting human-in-the-loop decision making  
 
-Modern web development involves multiple stages handled by different teams:
+---
 
+# System Architecture
+
+Blueprint AI follows a **layered architecture** designed to separate generation, validation, governance, and human oversight.
+
+This separation ensures that:
+
+- AI **generates artefacts**  
+- independent systems **validate them**  
+- governance modules **monitor consistency**  
+- humans **approve critical decisions**
+
+---
+
+# Architecture Diagram
+
+```mermaid
+flowchart TD
+
+A[Client Brief & Context Inputs]
+
+A --> B[Input & Context Layer]
+
+B --> C[Knowledge & Retrieval Layer]
+
+C --> D[Intelligence & Multi-Agent Orchestration]
+
+D --> E[Delivery / Generation Layer]
+
+E --> F[Validation Layer]
+
+F --> G[Governance Layer]
+
+G --> H[Explainability & Audit Layer]
+
+H --> I[Human Review Layer]
 ```
-Client Brief
-→ Requirement Analysis
-→ Architecture Planning
-→ UX Design
-→ Component Integration
-→ Code Development
-→ Testing & QA
-→ Compliance Checks
-→ Deployment
-```
-
-These stages often lack automation and coordination.
-
----
-
-### Design System Drift
-
-Over time, teams may:
-
-* create custom components outside the design system
-* use deprecated UI patterns
-* introduce inconsistent tokens or styles
-
-This leads to **design-system drift** across projects.
-
----
-
-### Compliance and Accessibility Risks
-
-Web applications must comply with regulations and standards such as:
-
-* GDPR (data privacy)
-* WCAG accessibility guidelines
-* cookie consent requirements
-* market-specific regulations
-
-These checks are frequently performed **late in the development lifecycle**, increasing risk.
-
----
-
-# Proposed Solution
-
-The **AI Web Design Lifecycle Orchestrator** coordinates the entire web delivery pipeline using:
-
-* **multi-agent AI workflows**
-* **retrieval augmented generation (RAG)**
-* **knowledge graphs**
-* **rule-based policy enforcement**
-* **automated validation systems**
-* **human review checkpoints**
-
-Rather than replacing developers and designers, the system **assists teams by orchestrating lifecycle stages and providing explainable recommendations.**
-
----
-
-# Architecture Overview
-
-The system follows a **layered architecture**, separating generation, validation, governance, and human oversight.
-
-```
-Input & Context Layer
-        ↓
-Knowledge & Retrieval Layer
-        ↓
-Intelligence & Multi-Agent Orchestration
-        ↓
-Delivery / Generation Layer
-        ↓
-Validation Layer
-        ↓
-Governance Layer
-        ↓
-Explainability & Audit Layer
-        ↓
-Human Review Layer
-```
-
-This separation ensures that generated outputs are **independently validated before deployment**, improving reliability and trust.
 
 ---
 
@@ -132,26 +92,26 @@ This separation ensures that generated outputs are **independently validated bef
 
 ## 1. Input and Context Layer
 
-This layer collects all information required to initiate the web delivery workflow.
+The **Input Layer** collects all information required to initiate the web delivery workflow.
 
 Typical inputs include:
 
-* client briefs
-* stakeholder notes
-* brand guidelines
-* design-system documentation
-* accessibility standards
-* regulatory policies
-* architecture templates
-* localisation requirements
-* previously approved UI patterns
+- client briefs  
+- stakeholder notes  
+- brand guidelines  
+- design-system documentation  
+- accessibility standards  
+- compliance policies  
+- architecture templates  
+- localisation rules  
+- previous project artefacts  
 
 ### Responsibilities
 
-* document ingestion
-* requirement parsing
-* metadata extraction
-* creation of structured project context
+- document ingestion  
+- text parsing  
+- requirement extraction  
+- context structuring  
 
 ---
 
@@ -163,13 +123,13 @@ This layer provides contextual knowledge required for grounded AI reasoning.
 
 Stores embeddings of documents including:
 
-* brand guidelines
-* design-system documentation
-* compliance rules
-* accessibility standards
-* architecture templates
+- design-system documentation  
+- brand guidelines  
+- accessibility policies  
+- compliance rules  
+- engineering standards  
 
-Supports **retrieval augmented generation (RAG)**.
+Supports **Retrieval Augmented Generation (RAG)**.
 
 ---
 
@@ -177,125 +137,155 @@ Supports **retrieval augmented generation (RAG)**.
 
 Represents relationships between:
 
-* requirements
-* pages
-* components
-* APIs
-* compliance policies
-* localisation variants
+- requirements  
+- pages  
+- components  
+- APIs  
+- policies  
+- localisation variants  
 
-This enables traceability across the system.
-
----
-
-### Rule / Policy Engine
-
-Enforces deterministic constraints such as:
-
-* approved component variants
-* required consent flows
-* typography and colour tokens
-* regulatory constraints
+The graph enables traceability across system decisions.
 
 ---
 
-## 3. Intelligence and Orchestration Layer
+### Policy and Rule Engine
 
-This layer coordinates the workflow using a **multi-agent architecture**.
+Certain rules must be enforced deterministically rather than probabilistically.
 
-A central **Orchestrator Agent** assigns tasks to specialised agents.
+Examples include:
 
-### Core Agents
-
-**Brief Understanding Agent**
-
-Extracts structured requirements from client briefs.
-
----
-
-**Requirements & Knowledge Graph Agent**
-
-Constructs structured project representations within the knowledge graph.
+- approved component variants  
+- consent requirements for personal data  
+- typography and colour tokens  
+- regional regulatory rules  
 
 ---
 
-**Architecture and Planning Agent**
+# Knowledge Graph Schema
 
-Generates:
+The knowledge graph acts as the system’s **structured reasoning backbone**. It links project requirements to pages, components, APIs, compliance obligations, brand rules, and localisation variants.
 
-* sitemap structures
-* page hierarchies
-* integration architecture
-* localisation strategies
+## What the knowledge graph captures
 
----
-
-**UX and Journey Agent**
-
-Produces:
-
-* user journeys
-* layout suggestions
-* CTA placement logic
-* usability recommendations
+- which **requirements** lead to which **pages**  
+- which **pages** use which **components**  
+- which **components** depend on which **design tokens**  
+- which **forms or APIs** introduce compliance obligations  
+- which **policies** apply to a page or component  
+- which **market variants** affect layout or content  
+- which **deprecated components** affect generated blueprints  
 
 ---
 
-**Design-System Retrieval Agent**
+## Knowledge Graph Schema Diagram
 
-Retrieves approved UI components using semantic search.
+```mermaid
+flowchart LR
+
+R[Requirement]
+U[User Role]
+P[Page]
+UF[User Flow]
+C[Component]
+DT[Design Token]
+API[API / Integration]
+F[Form / Data Capture]
+POL[Policy / Rule]
+COMP[Compliance Obligation]
+BR[Brand Guideline]
+LOC[Localisation Variant]
+DEP[Deprecated Component]
+
+R -->|defines| P
+R -->|constrains| UF
+U -->|interacts with| UF
+UF -->|navigates through| P
+
+P -->|uses| C
+C -->|styled by| DT
+C -->|may be replaced by| DEP
+
+P -->|contains| F
+F -->|submits to| API
+API -->|subject to| POL
+
+P -->|must satisfy| POL
+C -->|must satisfy| BR
+F -->|triggers| COMP
+POL -->|implements| COMP
+
+LOC -->|modifies| P
+LOC -->|modifies| BR
+LOC -->|modifies| POL
+```
 
 ---
 
-**Code Generation Agent**
+# Multi-Agent System
 
-Generates page templates and component scaffolds.
+The intelligence layer contains a **multi-agent architecture** where specialised agents collaborate under the control of an **Orchestrator Agent**.
 
----
+## Multi-Agent Interaction Diagram
 
-**Content and Tone Agent**
+```mermaid
+flowchart TD
 
-Ensures generated content aligns with brand voice.
+A[Client Brief]
 
----
+A --> B[Orchestrator Agent]
 
-**Explainability Agent**
+B --> C[Brief Understanding Agent]
 
-Provides explanations for system decisions.
+B --> D[UX & Journey Agent]
+
+B --> E[Architecture Planning Agent]
+
+B --> F[Design System Retrieval Agent]
+
+F --> G[Code Generation Agent]
+
+G --> H[Validation Agents]
+
+H --> I[Governance Agent]
+
+I --> J[Repair & Ticket Generation]
+
+J --> K[Human Review]
+```
 
 ---
 
 # Delivery Layer
 
-The Delivery Layer generates **structured artefacts used throughout the web development lifecycle.**
+The Delivery Layer produces **intermediate artefacts** required throughout the development lifecycle.
 
 Examples include:
 
-* requirement documents
-* sitemap structures
-* wireframes
-* page blueprints
-* component composition plans
-* code templates
-* deployment manifests
+- requirement specifications  
+- sitemaps  
+- wireframes  
+- page blueprints  
+- component compositions  
+- code templates  
+- deployment manifests  
 
-Rather than producing a full website directly, the system generates **structured intermediate artefacts** to improve traceability.
+Generating structured artefacts rather than full websites improves traceability.
 
 ---
 
 # Validation Layer
 
-All generated outputs pass through an independent validation pipeline.
+All generated artefacts pass through an independent validation pipeline.
 
 ### Accessibility Validation
 
 Ensures compliance with WCAG guidelines by checking:
 
-* colour contrast
-* semantic HTML structure
-* keyboard accessibility
-* alternative text
-* form labels
+- colour contrast  
+- semantic HTML  
+- keyboard accessibility  
+- alternative text  
+- form labels  
 
 ---
 
@@ -303,33 +293,32 @@ Ensures compliance with WCAG guidelines by checking:
 
 Evaluates regulatory requirements such as:
 
-* GDPR consent mechanisms
-* privacy policy links
-* cookie banner implementation
-* personal data handling
+- GDPR consent flows  
+- privacy policy links  
+- cookie banners  
+- personal data handling  
 
 ---
 
 ### Brand Consistency Validation
 
-Verifies alignment with brand guidelines including:
+Ensures alignment with brand guidelines:
 
-* colour tokens
-* typography rules
-* spacing tokens
-* allowed component usage
-* layout conventions
+- approved colour tokens  
+- typography rules  
+- spacing tokens  
+- component usage  
 
 ---
 
 ### Security Validation
 
-Detects vulnerabilities such as:
+Detects vulnerabilities including:
 
-* injection risks
-* insecure API calls
-* exposed secrets
-* weak input validation
+- injection risks  
+- insecure API calls  
+- exposed secrets  
+- weak input validation  
 
 ---
 
@@ -337,115 +326,139 @@ Detects vulnerabilities such as:
 
 Checks:
 
-* page performance metrics
-* metadata structure
-* search engine optimisation best practices
+- performance indicators  
+- metadata structure  
+- search engine optimisation practices  
 
 ---
 
 # Governance Layer
 
-The Governance Layer monitors design-system health across projects.
+The Governance Layer ensures long-term alignment with the official design system.
 
-### Governance checks
+Governance checks include:
 
-* deprecated component detection
-* design token drift detection
-* off-system UI patterns
-* duplicated components
-* cross-project consistency monitoring
+- deprecated component detection  
+- design token drift detection  
+- off-system UI patterns  
+- duplicated custom components  
+- cross-project consistency monitoring  
 
 When inconsistencies are detected, the system recommends upgrades or replacements.
 
 ---
 
-# Explainability and Audit Layer
+# Lifecycle Workflow
 
-This layer provides transparency into system behaviour.
+The orchestrator coordinates the entire pipeline from brief to deployment.
+
+## Lifecycle Pipeline Diagram
+
+```mermaid
+flowchart TD
+
+A[Client Brief]
+
+A --> B[Requirement Extraction]
+
+B --> C[Knowledge Graph Construction]
+
+C --> D[Architecture Planning]
+
+D --> E[UX & Wireframe Generation]
+
+E --> F[Design System Component Retrieval]
+
+F --> G[Page Blueprint Generation]
+
+G --> H[Code Template Generation]
+
+H --> I[Accessibility Validation]
+
+I --> J[Compliance Validation]
+
+J --> K[Brand Validation]
+
+K --> L[Security Validation]
+
+L --> M[Governance Checks]
+
+M --> N[Repair Suggestions]
+
+N --> O[Human Review]
+
+O --> P[Deployment Preview]
+
+P --> Q[Continuous Feedback Loop]
+```
+
+---
+
+# Explainability Layer
+
+The Explainability Layer provides transparency into system behaviour.
 
 The system can explain:
 
-* why a component was selected
-* which rules were applied
-* why validation failed
-* which documents influenced decisions
-* recommended remediation actions
+- why a component was selected  
+- which rule triggered validation failures  
+- which knowledge sources were retrieved  
+- recommended remediation steps  
 
-Explainability improves trust and debugging.
+Explainability improves trust in AI-assisted workflows.
 
 ---
 
 # Human Review Layer
 
-Human oversight is integrated throughout the workflow.
+Human oversight is integrated throughout the system.
 
 ### Human checkpoints
 
-1. requirement confirmation
-2. architecture approval
-3. UX approval
-4. validation review
-5. governance decisions
-6. deployment approval
+1. requirement confirmation  
+2. architecture approval  
+3. UX review  
+4. validation review  
+5. governance decisions  
+6. deployment approval  
 
-The system is designed as **AI-assisted orchestration rather than full automation.**
-
----
-
-# End-to-End Workflow
-
-The orchestrator coordinates the lifecycle through the following stages:
-
-```
-1  Brief Intake
-2  Requirement Extraction
-3  Knowledge Graph Construction
-4  Architecture Planning
-5  UX & Wireframe Generation
-6  Design-System Component Retrieval
-7  Blueprint / Code Template Generation
-8  Automated Validation
-9  Governance Checks
-10 Repair & Ticket Generation
-11 Deployment Preview
-12 Continuous Feedback & Learning
-```
+Blueprint AI therefore operates as **AI-assisted orchestration rather than full automation**.
 
 ---
 
 # Prototype Scope
 
-The research prototype focuses on demonstrating three core capabilities.
+This repository contains a prototype demonstrating three core capabilities.
 
-### A — Brief-to-Blueprint Generation
+### A — Brief to Blueprint Generation
 
-The system interprets client briefs and recommends design-system components.
+AI interprets client briefs and recommends design-system components.
 
 Outputs include:
 
-* page blueprints
-* component compositions
-* code templates
+- page blueprints  
+- component compositions  
+- code templates  
 
 ---
 
 ### B — Automated Validation
 
-Generated outputs are evaluated using automated validation checks including:
+Generated artefacts are validated against:
 
-* accessibility
-* brand consistency
-* regulatory compliance
+- accessibility standards  
+- brand guidelines  
+- regulatory compliance  
 
 ---
 
-### C — Design-System Governance
+### C — Design System Governance
 
-The system detects issues such as:
+The system detects:
 
-* deprecated components
-* design token drift
-* off-system UI patterns
+- deprecated components  
+- design token drift  
+- off-system patterns  
 
 ---
 
@@ -453,84 +466,62 @@ The system detects issues such as:
 
 The prototype interface is implemented using **Streamlit**.
 
-Streamlit enables rapid development of an interactive research demo without requiring a production frontend framework.
+Streamlit enables rapid development of an interactive research demo that allows users to:
 
-The interface allows users to:
+- submit project briefs  
+- inspect structured requirements  
+- view generated page blueprints  
+- analyse validation reports  
+- explore governance findings  
+- inspect explainability outputs  
 
-* submit project briefs
-* view structured requirements
-* inspect generated page blueprints
-* review validation reports
-* explore governance findings
-* inspect explainability outputs
-* approve or reject system suggestions
-
-This lightweight interface allows development effort to focus on **AI orchestration and validation logic rather than frontend engineering.**
+This lightweight interface ensures development effort focuses on **AI orchestration and validation logic rather than frontend engineering**.
 
 ---
 
-# Technology Stack (Prototype)
+# Technology Stack
 
 ### Frontend
 
-* Streamlit
-
----
+- Streamlit  
 
 ### Backend
 
-* Python
-* modular service architecture
-* FastAPI (optional for API endpoints)
+- Python  
+- FastAPI (optional API services)  
 
----
+### Agent Framework
 
-### AI / Agent Framework
+- LangGraph or CrewAI  
 
-* LangGraph or CrewAI
-* OpenAI or other LLM APIs
-* structured prompting
-* tool/function calling
+### AI Models
 
----
+- OpenAI API  
+- structured prompting  
+- tool calling  
 
 ### Retrieval Layer
 
-* pgvector / Chroma / Pinecone
-* document embeddings for design-system documentation and policies
-
----
+- pgvector / Chroma / Pinecone  
 
 ### Knowledge Graph
 
-* Neo4j
-  or
-* relational graph representation in PostgreSQL
-
----
+- Neo4j or PostgreSQL graph model  
 
 ### Validation Tools
 
-* axe-core (accessibility checks)
-* Lighthouse (performance)
-* ESLint
-* Semgrep (security)
-* custom rule engine for brand and compliance validation
+- axe-core  
+- Lighthouse  
+- ESLint  
+- Semgrep  
+- custom rule engine  
 
 ---
 
-### Deployment / CI
-
-* GitHub Actions
-* Streamlit app deployment
-* optional preview environments
-
----
-
-# Repository Structure (Suggested)
+# Repository Structure
 
 ```
-ai-web-lifecycle-orchestrator/
+blueprint-ai/
 
 agents/
     orchestrator.py
@@ -538,7 +529,6 @@ agents/
     ux_agent.py
     retrieval_agent.py
     code_agent.py
-    explainability_agent.py
 
 validation/
     accessibility_validator.py
@@ -567,46 +557,37 @@ docs/
 
 # Benefits
 
-### Faster Web Delivery
+### Accelerated Web Delivery
 
-AI assists with requirement analysis, component selection, and validation.
+AI assists with requirement analysis, component retrieval, and validation.
 
----
+### Design System Governance
 
-### Design-System Governance
+Prevents UI drift across projects.
 
-The system prevents UI drift across projects.
+### Regulatory Compliance
 
----
-
-### Compliance Support
-
-Automated validation reduces regulatory risk.
-
----
+Automated checks reduce compliance risks.
 
 ### Explainable AI
 
-Transparent reasoning enables trust in AI-assisted workflows.
-
----
+Transparent reasoning improves trust.
 
 ### Scalable Architecture
 
-The modular architecture allows additional agents and validation modules to be added easily.
+Modular design allows future extensions.
 
 ---
 
 # Future Work
 
-Possible future extensions include:
+Potential future extensions include:
 
-* automated localisation across markets
-* integration with design tools such as Figma
-* reinforcement learning from human feedback
-* automated A/B testing optimisation
-* CI/CD pipeline integration
-* enterprise design-system management tools
+- automated localisation workflows  
+- integration with design tools such as Figma  
+- reinforcement learning from human feedback  
+- automated A/B testing optimisation  
+- enterprise design-system management tools  
 
 ---
 
