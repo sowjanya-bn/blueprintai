@@ -33,7 +33,8 @@ def build_explainability(blueprint: Dict[str, Any]) -> Dict[str, Any]:
     top_evidence = []
     for ev in retrieved[:3]:
         comp = ev.get("component", {})
-        top_evidence.append(f"{comp.get('name')} (score={ev.get('score')})")
+        cid = comp.get("component_id") or comp.get("name")
+        top_evidence.append(f"{comp.get('name')} (id={cid}, score={ev.get('score')})")
 
     rec = {
         "id": _id("retrieval", 1),
@@ -42,7 +43,7 @@ def build_explainability(blueprint: Dict[str, Any]) -> Dict[str, Any]:
         "rationale": "Top semantically relevant components were selected and brand-approved items were boosted.",
         "evidence": top_evidence,
         "rules_applied": ["retriever.semantic_search", "retrieval.brand_boost"],
-        "linked_components": [ev.get("component", {}).get("name") for ev in retrieved[:5]],
+        "linked_components": [ev.get("component", {}).get("component_id") or ev.get("component", {}).get("name") for ev in retrieved[:5]],
         "human_review": "Optional",
     }
     records.append(rec)
@@ -68,7 +69,11 @@ def build_explainability(blueprint: Dict[str, Any]) -> Dict[str, Any]:
             "rationale": rationale,
             "evidence": evidence_for_variant,
             "rules_applied": ["blueprint.strategy"] + (["brand.approved_components"] if requirements.get("brand") else []),
-            "linked_components": comp_list,
+            # map to component_ids when available
+            "linked_components": [
+                next((r.get("component", {}).get("component_id") for r in retrieved if r.get("component", {}).get("name") == n), n)
+                for n in comp_list
+            ],
             "human_review": "Recommended" if float(v.get("fit_score", 0)) < 0.6 else "Optional",
         }
         records.append(rec)

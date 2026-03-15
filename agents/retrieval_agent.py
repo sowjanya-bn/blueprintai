@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Any
 
 from src.retriever import retrieve_components
-from utils.loaders import load_brand
+from utils.loaders import load_brand, make_component_id
 
 
 def retrieve_for_brief(brief: str, brand: str | None = None, top_k: int = 5) -> List[Dict[str, Any]]:
@@ -29,7 +29,8 @@ def retrieve_for_brief(brief: str, brand: str | None = None, top_k: int = 5) -> 
             score = min(1.0, score + 0.15)
 
         processed.append({
-            "component": comp,
+            # ensure component has a stable id for cross-references
+            "component": {**comp, "component_id": comp.get("component_id") or make_component_id(name)},
             "evidence": r.get("evidence"),
             "score": round(score, 3),
         })

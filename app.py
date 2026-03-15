@@ -173,7 +173,7 @@ def render_variant_card(variant: dict, idx: int):
             st.markdown(f"### Variant {idx}: {variant.get('pattern_name', 'Untitled')}")
 
         with col2:
-            if st.button("Approve", key=f"approve_{idx}"):
+            if st.button("Approve", key=f"approve_variant_{idx}"):
                 st.session_state.approved_variant = variant
                 st.success("Variant approved!")
 
@@ -484,15 +484,15 @@ def render_compliance_flags(flags):
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("Mark Reviewed", key=f"review_{flag_id}", use_container_width=True):
+                if st.button("Mark Reviewed", key=f"review_flag_{flag_id}", use_container_width=True):
                     st.session_state.flag_status[flag_id] = "reviewed"
                     st.rerun()
             with col2:
-                if st.button("Waive", key=f"waive_{flag_id}", use_container_width=True):
+                if st.button("Waive", key=f"waive_flag_{flag_id}", use_container_width=True):
                     st.session_state.flag_status[flag_id] = "waived"
                     st.rerun()
             with col3:
-                if st.button("Needs Fix", key=f"fix_{flag_id}", use_container_width=True):
+                if st.button("Needs Fix", key=f"fix_flag_{flag_id}", use_container_width=True):
                     st.session_state.flag_status[flag_id] = "needs_fix"
                     st.rerun()
 
@@ -964,7 +964,7 @@ with main_tabs[4]:
                             for r in t.get("rationale"):
                                 st.write(f"- {r}")
                         st.markdown(f"**Owner hint**: {t.get('owner_hint')}")
-                        st.button("Copy ticket to clipboard", key=f"copy_ticket_{i}")
+                        st.button("Copy ticket to clipboard", key=f"ticket_copy_{i}")
 
 with main_tabs[5]:
     if not st.session_state.result:
@@ -1176,9 +1176,13 @@ with main_tabs[5]:
                         st.markdown("**Linked Components**")
                         st.write(", ".join([str(x) for x in linked]))
                         # add jump-to-graph button (select first linked component)
-                        if st.button(f"Jump to graph: {linked[0]}", key=f"jump_{cid}"):
-                            # graph node ids are stored as component::<name>
-                            node_id = f"component::{linked[0]}"
+                        if st.button(f"Jump to graph: {linked[0]}", key=f"jump_expl_{cid}"):
+                            node_val = linked[0]
+                            # if it's already a namespaced id like component::hero, use directly
+                            if isinstance(node_val, str) and "::" in node_val:
+                                node_id = node_val
+                            else:
+                                node_id = f"component::{node_val}"
                             st.session_state["kg_selected_node"] = node_id
                             st.info("Selected node stored. Open the Knowledge Graph tab to view the node.")
 

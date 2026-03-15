@@ -43,13 +43,17 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
 
     # Components: from retrieved and design system
     comp_names = set()
+    comp_name_to_id = {}
     for r in retrieved:
         comp = r.get("component", {})
         name = comp.get("name")
         if not name:
             continue
-        node_id = f"component::{name}"
+        # prefer explicit component_id when available
+        comp_id = comp.get("component_id") or f"component::{name}"
+        node_id = comp_id
         comp_names.add(name)
+        comp_name_to_id[name] = node_id
         G.add_node(node_id, type="component", name=name, purpose=comp.get("purpose"))
         # link requirement -> component (traceability)
         G.add_edge(req_id, node_id, relation="requires_component")
@@ -61,7 +65,7 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
     # Add design system components as nodes (if not already present)
     for comp in design.get("components", []):
         name = comp.get("name")
-        node_id = f"component::{name}"
+        node_id = comp.get("component_id") or f"component::{name}"
         if not G.has_node(node_id):
             G.add_node(node_id, type="component", name=name, purpose=comp.get("purpose"))
 
@@ -84,7 +88,7 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
         if any(k in name.lower() for k in ["form", "signup", "contact"]):
             form_node = f"form::{name}"
             G.add_node(form_node, type="form", name=name)
-            G.add_edge(f"component::{name}", form_node, relation="has_form")
+            G.add_edge(comp_name_to_id.get(name, f"component::{name}"), form_node, relation="has_form")
 
             # If market is EU/GDPR, add obligation node
             if market_gdpr:
@@ -102,8 +106,10 @@ def build_graph(requirements: Dict[str, Any], variants: List[Dict[str, Any]], re
         # page -> components
         for comp in v.get("components", []):
             cname = comp.get("component_name")
+            cid = comp.get("component_id")
             if cname:
-                G.add_edge(page_node, f"component::{cname}", relation="uses_component")
+                target = cid or f"component::{cname}"
+                G.add_edge(page_node, target, relation="uses_component")
 
     return G
 
