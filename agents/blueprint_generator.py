@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from typing import List, Dict, Any
 from utils.loaders import make_component_id
 
@@ -45,6 +47,345 @@ def _brief_alignment_score(strategy_key: str, requirements: Dict[str, Any]) -> f
         score += 0.25
 
     return max(0.0, min(1.0, score))
+
+
+def _component_layout_role(name: str) -> str:
+    mapping = {
+        "Hero": "primary-entry",
+        "SignupForm": "conversion-capture",
+        "CTA Block": "conversion-prompt",
+        "FeatureGrid": "benefit-explanation",
+        "Safety Accordion": "risk-disclosure",
+        "FAQ": "supporting-answers",
+        "Disclaimer Footer": "legal-disclosure",
+    }
+    return mapping.get(name, "content-block")
+
+
+def _component_props(name: str, requirements: Dict[str, Any]) -> Dict[str, Any]:
+    audience = requirements.get("audience") or "general audience"
+    market = requirements.get("market") or "global"
+
+    mapping = {
+        "Hero": {
+            "headline": f"Primary message for {audience}",
+            "subheadline": f"Supporting message tailored to the {market} market",
+            "ctaLabel": "Get Started",
+        },
+        "SignupForm": {
+            "title": "Stay updated",
+            "submitLabel": "Submit",
+            "fields": ["firstName", "lastName", "email"],
+            "consentRequired": True,
+        },
+        "CTA Block": {
+            "title": "Ready for the next step?",
+            "body": "Guide users to the primary conversion action.",
+            "ctaLabel": "Continue",
+        },
+        "FeatureGrid": {
+            "columns": 3,
+            "showIcons": True,
+        },
+        "Safety Accordion": {
+            "allowMultipleExpanded": False,
+            "sections": ["Warnings", "Side Effects", "When to seek help"],
+        },
+        "FAQ": {
+            "items": 4,
+            "expandFirst": False,
+        },
+        "Disclaimer Footer": {
+            "showPrivacyLink": True,
+            "showRegulatoryCopy": True,
+        },
+    }
+    return mapping.get(name, {"title": name})
+
+
+def _component_slots(name: str) -> List[str]:
+    mapping = {
+        "Hero": ["headline", "subheadline", "cta"],
+        "SignupForm": ["formTitle", "fields", "consentCopy", "submitAction"],
+        "CTA Block": ["title", "body", "cta"],
+        "FeatureGrid": ["sectionTitle", "cards"],
+        "Safety Accordion": ["sectionTitle", "accordionItems"],
+        "FAQ": ["sectionTitle", "questions"],
+        "Disclaimer Footer": ["disclaimerText", "privacyLink"],
+    }
+    return mapping.get(name, ["content"])
+
+
+def _component_data_dependencies(name: str) -> List[str]:
+    mapping = {
+        "SignupForm": ["consent status", "submission endpoint", "validation schema"],
+        "Hero": ["campaign message content"],
+        "FeatureGrid": ["feature cards content"],
+        "Safety Accordion": ["approved safety copy"],
+        "FAQ": ["approved FAQs"],
+        "Disclaimer Footer": ["privacy URL", "legal copy"],
+    }
+    return mapping.get(name, [])
+
+
+def _component_accessibility_notes(name: str) -> List[str]:
+    mapping = {
+        "Hero": ["Ensure one clear H1 and descriptive CTA text."],
+        "SignupForm": ["Associate labels and errors with inputs.", "Support keyboard and screen-reader flows."],
+        "CTA Block": ["Keep CTA text action-oriented and specific."],
+        "FeatureGrid": ["Use semantic lists or landmark regions for cards."],
+        "Safety Accordion": ["Expose expanded state and keyboard controls."],
+        "FAQ": ["Use meaningful question headings and button semantics."],
+        "Disclaimer Footer": ["Maintain readable contrast and link clarity."],
+    }
+    return mapping.get(name, ["Validate heading structure and text contrast."])
+
+
+def _route_for_variant(variant: Dict[str, Any], requirements: Dict[str, Any]) -> str:
+    page_type = str(requirements.get("content_type") or "page").replace("Page", "").lower()
+    strategy = str(variant.get("strategy_key") or variant.get("pattern_name") or "default").replace("_", "-").lower()
+    return f"/{page_type}/{strategy}"
+
+
+def _build_page_blueprint(variant: Dict[str, Any], requirements: Dict[str, Any]) -> Dict[str, Any]:
+    sections = []
+    for idx, component in enumerate(variant.get("components", []), start=1):
+        name = component.get("component_name", "Component")
+        component_id = component.get("component_id") or make_component_id(name)
+        sections.append(
+            {
+                "section_id": f"section_{idx}_{component_id.split('::')[-1]}",
+                "order": idx,
+                "component": name,
+                "component_id": component_id,
+                "layout_role": _component_layout_role(name),
+                "summary": component.get("content_summary", ""),
+                "props": _component_props(name, requirements),
+                "content_slots": _component_slots(name),
+                "data_dependencies": _component_data_dependencies(name),
+                "accessibility_notes": _component_accessibility_notes(name),
+            }
+        )
+
+    return {
+        "variant_name": variant.get("pattern_name", "Untitled Variant"),
+        "strategy_key": variant.get("strategy_key"),
+        "page_type": requirements.get("content_type", "LandingPage"),
+        "route": _route_for_variant(variant, requirements),
+        "audience": requirements.get("audience", "general"),
+        "sections": sections,
+        "handoff_notes": [
+            "Map approved copy to each section before implementation.",
+            "Confirm analytics and compliance requirements for interactive elements.",
+            "Validate responsive behavior for all content blocks.",
+        ],
+    }
+
+
+def _build_component_composition(page_blueprint: Dict[str, Any]) -> Dict[str, Any]:
+    composition = []
+    previous_component_id = None
+    for section in page_blueprint.get("sections", []):
+        component_entry = {
+            "component": section.get("component"),
+            "component_id": section.get("component_id"),
+            "position": section.get("order"),
+            "composition_role": section.get("layout_role"),
+            "parent": "page-root",
+            "depends_on": [previous_component_id] if previous_component_id else [],
+            "props": section.get("props", {}),
+            "content_slots": section.get("content_slots", []),
+            "data_dependencies": section.get("data_dependencies", []),
+        }
+        composition.append(component_entry)
+        previous_component_id = section.get("component_id")
+
+    return {
+        "variant_name": page_blueprint.get("variant_name"),
+        "route": page_blueprint.get("route"),
+        "components": composition,
+    }
+
+
+def _template_component_name(name: str) -> str:
+    parts = [part for part in str(name).replace("-", " ").split() if part]
+    return "".join(part[:1].upper() + part[1:] for part in parts) or "Component"
+
+
+def _jsx_prop_value(value: Any) -> str:
+    if isinstance(value, str):
+        escaped = value.replace('"', '\\"')
+        return f'"{escaped}"'
+    if isinstance(value, bool):
+        return "{true}" if value else "{false}"
+    if isinstance(value, (int, float)):
+        return f"{{{value}}}"
+    if isinstance(value, list):
+        rendered = ", ".join(_jsx_prop_value(item).strip("{}") if not isinstance(item, str) else f'\"{item}\"' for item in value)
+        return f"{{[{rendered}]}}"
+    return "{undefined}"
+
+
+def _build_react_template(page_blueprint: Dict[str, Any]) -> str:
+    imports = []
+    blocks = []
+
+    for section in page_blueprint.get("sections", []):
+        component_name = _template_component_name(section.get("component"))
+        import_stmt = f"import {component_name} from \"@/components/{component_name}\";"
+        if import_stmt not in imports:
+            imports.append(import_stmt)
+
+        props = section.get("props", {})
+        prop_lines = []
+        for key, value in props.items():
+            prop_lines.append(f"        {key}={_jsx_prop_value(value)}")
+        if not prop_lines:
+            prop_lines.append("        /* add props */")
+
+        blocks.append(
+            "\n".join(
+                [
+                    f"      <section data-section-id=\"{section.get('section_id')}\">",
+                    f"        <{component_name}",
+                    *prop_lines,
+                    "        />",
+                    "      </section>",
+                ]
+            )
+        )
+
+    page_component_name = _template_component_name(page_blueprint.get("variant_name", "BlueprintPage")) + "Page"
+    imports_block = "\n".join(imports)
+    sections_block = "\n\n".join(blocks)
+
+    return (
+        f"{imports_block}\n\n"
+        f"export default function {page_component_name}() {{\n"
+        "  return (\n"
+        "    <main>\n"
+        f"{sections_block}\n"
+        "    </main>\n"
+        "  );\n"
+        "}\n"
+    )
+
+
+def _build_html_template(page_blueprint: Dict[str, Any]) -> str:
+    sections = []
+    for section in page_blueprint.get("sections", []):
+        slots = "\n".join(f"      <div data-slot=\"{slot}\">{slot}</div>" for slot in section.get("content_slots", []))
+        sections.append(
+            "\n".join(
+                [
+                    f"  <section id=\"{section.get('section_id')}\" data-component=\"{section.get('component')}\">",
+                    f"    <h2>{section.get('component')}</h2>",
+                    slots or "      <div>content</div>",
+                    "  </section>",
+                ]
+            )
+        )
+
+    body = "\n\n".join(sections)
+    return (
+        "<!doctype html>\n"
+        "<html lang=\"en\">\n"
+        "<head>\n"
+        "  <meta charset=\"utf-8\" />\n"
+        f"  <title>{page_blueprint.get('variant_name')}</title>\n"
+        "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
+        "</head>\n"
+        "<body>\n"
+        "  <main>\n"
+        f"{body}\n"
+        "  </main>\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
+
+def _python_literal(value: Any) -> str:
+    if isinstance(value, str):
+        return repr(value)
+    if isinstance(value, bool):
+        return "True" if value else "False"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    if isinstance(value, list):
+        return json.dumps(value)
+    if isinstance(value, dict):
+        return json.dumps(value, indent=4)
+    return "None"
+
+
+def _build_streamlit_template(page_blueprint: Dict[str, Any]) -> str:
+    lines = [
+        "import streamlit as st",
+        "",
+        "st.set_page_config(page_title=\"Blueprint Page\", layout=\"wide\")",
+        "",
+        f"st.title({_python_literal(page_blueprint.get('variant_name', 'Blueprint Page'))})",
+        f"st.caption({_python_literal('Route: ' + str(page_blueprint.get('route', '/')) )})",
+        "",
+    ]
+
+    for section in page_blueprint.get("sections", []):
+        component = section.get("component", "Component")
+        props = section.get("props", {})
+        slots = section.get("content_slots", [])
+        role = section.get("layout_role", "content-block")
+        notes = section.get("accessibility_notes", [])
+
+        lines.extend(
+            [
+                f"with st.container(border=True):",
+                f"    st.markdown(\"### {component}\")",
+                f"    st.caption({_python_literal('Layout role: ' + role)})",
+            ]
+        )
+
+        if component == "Hero":
+            lines.append(f"    st.header({_python_literal(props.get('headline', 'Headline'))})")
+            lines.append(f"    st.write({_python_literal(props.get('subheadline', 'Supporting copy'))})")
+            lines.append(f"    st.button({_python_literal(props.get('ctaLabel', 'Get Started'))})")
+        elif component == "SignupForm":
+            lines.append(f"    st.subheader({_python_literal(props.get('title', 'Stay updated'))})")
+            for field in props.get("fields", []):
+                label = field[:1].upper() + field[1:]
+                lines.append(f"    st.text_input({_python_literal(label)}, key={_python_literal('field_' + field)})")
+            if props.get("consentRequired"):
+                lines.append("    st.checkbox(\"I agree to the privacy notice and consent terms\")")
+            lines.append(f"    st.button({_python_literal(props.get('submitLabel', 'Submit'))}, key={_python_literal(section.get('section_id', 'submit'))})")
+        elif component in {"FAQ", "Safety Accordion"}:
+            for slot in slots or ["content"]:
+                lines.append(f"    with st.expander({_python_literal(slot.replace('_', ' ').title())}):")
+                lines.append(f"        st.write({_python_literal(slot + ' content goes here.')})")
+        elif component == "FeatureGrid":
+            lines.append("    col1, col2, col3 = st.columns(3)")
+            lines.append("    col1.info('Card 1')")
+            lines.append("    col2.info('Card 2')")
+            lines.append("    col3.info('Card 3')")
+        elif component == "CTA Block":
+            lines.append(f"    st.write({_python_literal(props.get('body', 'Guide the user to the next step.'))})")
+            lines.append(f"    st.button({_python_literal(props.get('ctaLabel', 'Continue'))}, key={_python_literal(section.get('section_id', 'cta'))})")
+        elif component == "Disclaimer Footer":
+            lines.append("    st.caption('Legal and privacy disclaimer copy.')")
+            if props.get("showPrivacyLink"):
+                lines.append("    st.markdown('[Privacy Policy](#)')")
+        else:
+            lines.append(f"    st.write({_python_literal(component + ' content placeholder')})")
+
+        if props:
+            lines.append(f"    st.json({_python_literal(props)})")
+
+        if notes:
+            lines.append("    st.markdown('**Accessibility Notes**')")
+            for note in notes:
+                lines.append(f"    st.write({_python_literal('- ' + note)})")
+
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, Any]], num_variants: int = 3) -> Dict[str, Any]:
@@ -119,12 +460,39 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
         s["label"]: s["description"] for s in STRATEGIES
     }
 
+    page_blueprints = [_build_page_blueprint(variant, requirements) for variant in variants]
+    component_compositions = [_build_component_composition(blueprint) for blueprint in page_blueprints]
+
+    best_variant = max(
+        variants,
+        key=lambda variant: variant.get("fit_score", 0.0) if isinstance(variant.get("fit_score", 0.0), (int, float)) else 0.0,
+        default=variants[0] if variants else {},
+    )
+    best_page_blueprint = next(
+        (blueprint for blueprint in page_blueprints if blueprint.get("variant_name") == best_variant.get("pattern_name")),
+        page_blueprints[0] if page_blueprints else {},
+    )
+
     page_spec = {
-        "page_type": requirements.get("content_type", "LandingPage"),
+        "page_type": best_page_blueprint.get("page_type", requirements.get("content_type", "LandingPage")),
+        "route": best_page_blueprint.get("route", "/page/default"),
         "layout": [
-            {"component": c["component_name"], "props": {}, "accessibility_notes": []}
-            for c in variants[0]["components"]
+            {
+                "component": section.get("component"),
+                "props": section.get("props", {}),
+                "accessibility_notes": section.get("accessibility_notes", []),
+                "layout_role": section.get("layout_role"),
+                "data_dependencies": section.get("data_dependencies", []),
+            }
+            for section in best_page_blueprint.get("sections", [])
         ],
+    }
+
+    code_templates = {
+        "recommended_variant": best_variant.get("pattern_name", "Untitled Variant"),
+        "react_tsx": _build_react_template(best_page_blueprint) if best_page_blueprint else "",
+        "html": _build_html_template(best_page_blueprint) if best_page_blueprint else "",
+        "streamlit_py": _build_streamlit_template(best_page_blueprint) if best_page_blueprint else "",
     }
 
     result = {
@@ -137,6 +505,9 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
         "pattern_reasoning": pattern_reasoning,
         "strategy_definitions": strategy_definitions,
         "variants": variants,
+        "page_blueprints": page_blueprints,
+        "component_compositions": component_compositions,
+        "code_templates": code_templates,
         "human_review_required": ["designer", "compliance"] if requirements.get("compliance_sensitivity") == "High" else ["designer"],
         "page_specification": page_spec,
     }

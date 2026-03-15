@@ -125,6 +125,20 @@ def blueprint_to_markdown(result: dict) -> str:
             for comp in variant.get("components", []):
                 md += f"- **{comp.get('component_name', 'Unknown')}**: {comp.get('content_summary', '')}\n"
 
+    page_blueprints = result.get("page_blueprints", [])
+    if page_blueprints:
+        md += "\n## Page Blueprints\n"
+        for blueprint in page_blueprints:
+            md += f"\n### {blueprint.get('variant_name', 'Untitled Variant')}\n"
+            md += f"- Route: {blueprint.get('route', 'N/A')}\n"
+            for section in blueprint.get("sections", []):
+                md += f"- {section.get('order')}. **{section.get('component')}** ({section.get('layout_role')})\n"
+
+    code_templates = result.get("code_templates", {})
+    if code_templates:
+        md += "\n## Code Templates\n"
+        md += f"- Recommended variant: {code_templates.get('recommended_variant', 'N/A')}\n"
+
     compliance = result.get("compliance_flags", {})
     compliance_items = compliance.get("flags", []) if isinstance(compliance, dict) else compliance
     if compliance_items:
@@ -256,6 +270,8 @@ def render_page_spec(page_spec: dict):
         return
 
     st.markdown(f"**Page Type:** {page_spec.get('page_type', 'N/A')}")
+    if page_spec.get("route"):
+        st.markdown(f"**Route:** {page_spec.get('route')}")
 
     layout = page_spec.get("layout", [])
     if not layout:
@@ -277,10 +293,118 @@ def render_page_spec(page_spec: dict):
                     for key, value in props.items():
                         st.write(f"- **{key}**: {value}")
 
+                if block.get("layout_role"):
+                    st.markdown(f"**Layout Role:** {block.get('layout_role')}")
+
+                data_dependencies = block.get("data_dependencies", [])
+                if data_dependencies:
+                    st.markdown("**Data Dependencies**")
+                    for item in data_dependencies:
+                        st.write(f"- {item}")
+
                 if notes:
                     st.markdown("**Accessibility Notes**")
                     for note in notes:
                         st.write(f"- {note}")
+
+
+def render_page_blueprints(page_blueprints: list[dict]):
+    st.subheader("🗺️ Page Blueprints")
+    st.markdown(
+        '<div class="section-caption">Page-level section maps for each generated variant.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not page_blueprints:
+        st.info("Page blueprints will appear here once generated.")
+        return
+
+    blueprint_tabs = st.tabs([bp.get("variant_name", f"Variant {idx + 1}") for idx, bp in enumerate(page_blueprints)])
+    for tab, blueprint in zip(blueprint_tabs, page_blueprints):
+        with tab:
+            st.markdown(f"**Route:** {blueprint.get('route', 'N/A')}")
+            st.markdown(f"**Page Type:** {blueprint.get('page_type', 'N/A')}")
+            for section in blueprint.get("sections", []):
+                with st.expander(f"{section.get('order')}. {section.get('component')}", expanded=False):
+                    st.write(section.get("summary", ""))
+                    st.markdown(f"**Layout Role:** {section.get('layout_role', 'content-block')}")
+                    slots = section.get("content_slots", [])
+                    if slots:
+                        st.markdown("**Content Slots**")
+                        for slot in slots:
+                            st.write(f"- {slot}")
+                    dependencies = section.get("data_dependencies", [])
+                    if dependencies:
+                        st.markdown("**Data Dependencies**")
+                        for item in dependencies:
+                            st.write(f"- {item}")
+                    notes = section.get("accessibility_notes", [])
+                    if notes:
+                        st.markdown("**Accessibility Notes**")
+                        for note in notes:
+                            st.write(f"- {note}")
+
+
+def render_component_compositions(component_compositions: list[dict]):
+    st.subheader("🧱 Component Compositions")
+    st.markdown(
+        '<div class="section-caption">Implementation-ready component stack showing order, dependencies, props, and content slots.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not component_compositions:
+        st.info("Component compositions will appear here once generated.")
+        return
+
+    composition_tabs = st.tabs([comp.get("variant_name", f"Variant {idx + 1}") for idx, comp in enumerate(component_compositions)])
+    for tab, composition in zip(composition_tabs, component_compositions):
+        with tab:
+            rows = []
+            for item in composition.get("components", []):
+                rows.append(
+                    {
+                        "position": item.get("position"),
+                        "component": item.get("component"),
+                        "role": item.get("composition_role"),
+                        "depends_on": ", ".join(item.get("depends_on", [])),
+                        "slots": ", ".join(item.get("content_slots", [])),
+                    }
+                )
+            st.dataframe(rows, use_container_width=True)
+
+            for item in composition.get("components", []):
+                with st.expander(f"{item.get('position')}. {item.get('component')}"):
+                    props = item.get("props", {})
+                    if props:
+                        st.markdown("**Props**")
+                        for key, value in props.items():
+                            st.write(f"- **{key}**: {value}")
+                    dependencies = item.get("data_dependencies", [])
+                    if dependencies:
+                        st.markdown("**Data Dependencies**")
+                        for dep in dependencies:
+                            st.write(f"- {dep}")
+
+
+def render_code_templates(code_templates: dict):
+    st.subheader("💻 Code Templates")
+    st.markdown(
+        '<div class="section-caption">Starter implementation templates for the recommended variant.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not code_templates:
+        st.info("Code templates will appear here once generated.")
+        return
+
+    st.markdown(f"**Recommended Variant:** {code_templates.get('recommended_variant', 'N/A')}")
+    template_tab1, template_tab2, template_tab3 = st.tabs(["React TSX", "HTML", "Streamlit"])
+    with template_tab1:
+        st.code(code_templates.get("react_tsx", ""), language="tsx")
+    with template_tab2:
+        st.code(code_templates.get("html", ""), language="html")
+    with template_tab3:
+        st.code(code_templates.get("streamlit_py", ""), language="python")
 
 
 def render_evidence(evidence_items: list[dict]):
@@ -1173,6 +1297,12 @@ with main_tabs[4]:
         render_architecture_plan(st.session_state.result.get("architecture_plan", {}))
         st.divider()
         render_review_checkpoints(st.session_state.result)
+        st.divider()
+        render_page_blueprints(st.session_state.result.get("page_blueprints", []))
+        st.divider()
+        render_component_compositions(st.session_state.result.get("component_compositions", []))
+        st.divider()
+        render_code_templates(st.session_state.result.get("code_templates", {}))
         st.divider()
 
         approved = st.session_state.get("approved_variant")
