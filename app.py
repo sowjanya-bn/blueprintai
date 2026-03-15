@@ -287,6 +287,35 @@ def render_evidence(evidence_items: list[dict]):
         unsafe_allow_html=True,
     )
 
+    col1, col2 = st.columns(2)
+    if not st.session_state.result:
+
+        with col1:
+            st.button("Download JSON", disabled=True, width="stretch")
+        with col2:
+            st.button("Download MD", disabled=True, width="stretch")
+
+    else:
+
+        with col1:
+            st.download_button(
+                "Download JSON",
+                data=safe_serialize_for_download(st.session_state.result),
+                file_name="blueprint_plan.json",
+                mime="application/json",
+                width="stretch",
+            )
+
+        with col2:
+            md_plan = blueprint_to_markdown(st.session_state.result)
+            st.download_button(
+                "Download MD",
+                data=safe_serialize_for_download(md_plan),
+                file_name="blueprint_plan.md",
+                mime="text/markdown",
+                width="stretch",
+            )
+
     if not evidence_items:
         st.info("No evidence retrieved.")
         return
@@ -749,7 +778,7 @@ def render_wireframe_from_variant(variant: dict):
 
 
 # Top action bar
-title_col, action_col1, action_col2, action_col3 = st.columns([4, 1.2, 1.2, 1.2])
+title_col, action_col1 = st.columns([4, 2])
 
 with title_col:
     st.title("🧠 BlueprintAI")
@@ -761,34 +790,6 @@ with title_col:
 with action_col1:
     st.markdown("<div style='height: 1.9rem;'></div>", unsafe_allow_html=True)
     generate_clicked = st.button("Generate Blueprint", type="primary", use_container_width=True)
-
-with action_col2:
-    st.markdown("<div style='height: 1.9rem;'></div>", unsafe_allow_html=True)
-    if st.session_state.result:
-        plan_json = st.session_state.result
-        st.download_button(
-            "Download JSON",
-            data=safe_serialize_for_download(plan_json),
-            file_name="blueprint_plan.json",
-            mime="application/json",
-            use_container_width=True,
-        )
-    else:
-        st.button("Download JSON", disabled=True, use_container_width=True)
-
-with action_col3:
-    st.markdown("<div style='height: 1.9rem;'></div>", unsafe_allow_html=True)
-    if st.session_state.result:
-        md_plan = blueprint_to_markdown(st.session_state.result)
-        st.download_button(
-            "Download MD",
-            data=safe_serialize_for_download(md_plan),
-            file_name="blueprint_plan.md",
-            mime="text/markdown",
-            use_container_width=True,
-        )
-    else:
-        st.button("Download MD", disabled=True, use_container_width=True)
 
 # Global brief input
 st.subheader("Describe the webpage you want to generate")
@@ -1135,13 +1136,12 @@ with main_tabs[5]:
     with main_tabs[6]:
         st.subheader("🧭 Knowledge Graph")
         st.markdown(
-            '<div class="section-caption">Serialized knowledge graph showing nodes and edges used for traceability.</div>',
+            '<div class="section-caption">Structured traceability graph connecting requirements, pages, components, and policies.</div>',
             unsafe_allow_html=True,
         )
 
         kg = st.session_state.result.get("knowledge_graph") if st.session_state.result else None
 
-        # If a blueprint exists but the KG is missing or empty, attempt to rebuild it from available data.
         if st.session_state.result and (not kg or not kg.get("nodes")):
             st.warning("Knowledge graph not present or empty — attempting to rebuild from current blueprint data.")
             try:
@@ -1152,129 +1152,62 @@ with main_tabs[5]:
                 retrieved = st.session_state.result.get("retrieved_evidence", [])
 
                 G = build_graph(requirements, variants, retrieved)
-                serialized = serialize_graph(G)
-                # store back into session result for future renders
-                st.session_state.result.setdefault("knowledge_graph", serialized)
-                kg = serialized
+                kg = serialize_graph(G)
+                st.session_state.result["knowledge_graph"] = kg
                 st.success("Knowledge graph rebuilt from current blueprint data.")
             except Exception as e:
                 st.error(f"Failed to rebuild knowledge graph: {e}")
-                st.info("Knowledge graph will appear here after blueprint generation.")
+                kg = None
 
         if not kg or not kg.get("nodes"):
             st.info("Knowledge graph will appear here after blueprint generation.")
         else:
-            # Build NetworkX graph object from serialized KG for exploration and optional visualization
-            try:
-                import networkx as nx
-                import matplotlib.pyplot as plt
-            except Exception:
-                nx = None
-                plt = None
+            nodes = kg.get("nodes", [])
+            edges = kg.get("edges", [])
 
-            G = None
-            try:
-                if nx:
-                    G = nx.DiGraph()
-                    for n in kg.get("nodes", []):
-                        G.add_node(n.get("id"), **(n.get("attrs") or {}))
+            # Summary cards
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Nodes", len(nodes))
+            c2.metric("Edges", len(edges))
+            c3.metric(
+                "Node types",
+                len(set((n.get("attrs") or {}).get("type", "unknown") for n in nodes))
+            )
 
-                    for e in kg.get("edges", []):
-                        G.add_edge(e.get("source"), e.get("target"), **(e.get("attrs") or {}))
-            except Exception:
-                G = None
+            st.markdown("### Graph Summary")
 
-            # Prefer JS-based interactive pyvis visualization when available
-            clicked_node = None
-            # Prefer using the new lightweight Streamlit custom component if available
-            clicked_node = None
-            try:
-                from components.streamlit_pyvis import streamlit_pyvis
+            node_type_counts = {}
+            for n in nodes:
+                ntype = (n.get("attrs") or {}).get("type", "unknown")
+                node_type_counts[ntype] = node_type_counts.get(ntype, 0) + 1
 
-                nodes = []
-                edges = []
-                for n in kg.get("nodes", []):
-                    nid = n.get("id")
-                    label = (n.get("attrs") or {}).get("name") or nid
-                    title = "\n".join([f"{k}: {v}" for k, v in (n.get("attrs") or {}).items()])
-                    nodes.append({"id": nid, "label": label, "title": title})
+            st.json({
+                "node_type_counts": node_type_counts,
+                "sample_node_ids": [n.get("id") for n in nodes[:5]],
+                "sample_edges": edges[:5],
+            })
 
-                for e in kg.get("edges", []):
-                    edges.append({"source": e.get("source"), "target": e.get("target"), "title": str((e.get("attrs") or {}))})
+            st.markdown("### Nodes")
+            node_rows = []
+            for n in nodes:
+                attrs = n.get("attrs") or {}
+                node_rows.append({
+                    "id": n.get("id"),
+                    "name": attrs.get("name", ""),
+                    "type": attrs.get("type", "unknown"),
+                })
+            st.dataframe(node_rows, use_container_width=True)
 
-                # This calls the component; the frontend will return {selected_node: id} when clicked
-                    sel_node = st.session_state.get("kg_selected_node")
-                    result = streamlit_pyvis(nodes=nodes, edges=edges, selected_node=sel_node)
-                    if result and isinstance(result, dict):
-                        clicked_node = result.get("selected_node") or sel_node
-
-            except Exception:
-                # fallback: static matplotlib visualization
-                try:
-                    pos = nx.spring_layout(G, seed=42)
-                    fig = plt.figure(figsize=(9, 6))
-                    # color selected node differently when set in session
-                    selected_node = st.session_state.get("kg_selected_node")
-                    node_colors = []
-                    for n in G.nodes():
-                        node_colors.append("#f08a8a" if str(n) == str(selected_node) else "#7ef2b3")
-                    nx.draw_networkx_nodes(G, pos, node_size=700, node_color=node_colors)
-                    nx.draw_networkx_edges(G, pos, arrowstyle="->", arrowsize=12)
-                    nx.draw_networkx_labels(G, pos, font_size=8)
-                    plt.axis("off")
-                    st.pyplot(fig)
-                except Exception:
-                    st.warning("Graph visualization unavailable (missing dependencies or rendering error).")
-
-            # Interactive exploration: node selector, node details, neighbors
-            node_options = [n.get("id") for n in kg.get("nodes", [])]
-
-            filter_type = st.selectbox("Filter nodes by type (optional)", options=["all"] + sorted({(n.get("attrs") or {}).get("type", "unknown") for n in kg.get("nodes", [])}))
-
-            if filter_type and filter_type != "all":
-                node_options = [n for n in node_options if ((next(filter(lambda x: x.get("id") == n, kg.get("nodes", [])) or {}).get("attrs") or {}).get("type") == filter_type)]
-
-            # allow selection from pyvis click, session, or selector
-            preselect = None
-            if clicked_node:
-                preselect = clicked_node
-            elif st.session_state.get("kg_selected_node"):
-                preselect = st.session_state.get("kg_selected_node")
-
-            # determine index for selectbox
-            try:
-                default_index = node_options.index(preselect) if preselect in node_options else 0
-            except Exception:
-                default_index = 0
-
-            selected = st.selectbox("Select node to inspect", options=node_options, index=default_index)
-
-            if selected:
-                # show node attrs
-                node_obj = next(filter(lambda x: x.get("id") == selected, kg.get("nodes", [])), None)
-                if node_obj:
-                    st.markdown("**Node Attributes**")
-                    for k, v in (node_obj.get("attrs") or {}).items():
-                        st.write(f"- **{k}**: {v}")
-
-                # show incoming and outgoing edges
-                st.markdown("**Neighbors**")
-                incoming = [e for e in kg.get("edges", []) if e.get("target") == selected]
-                outgoing = [e for e in kg.get("edges", []) if e.get("source") == selected]
-
-                if incoming:
-                    st.markdown("**Incoming**")
-                    for e in incoming:
-                        st.write(f"- {e.get('source')}  →  {e.get('target')}  — {e.get('attrs', {})}")
-                else:
-                    st.write("No incoming edges")
-
-                if outgoing:
-                    st.markdown("**Outgoing**")
-                    for e in outgoing:
-                        st.write(f"- {e.get('source')}  →  {e.get('target')}  — {e.get('attrs', {})}")
-                else:
-                    st.write("No outgoing edges")
+            st.markdown("### Edges")
+            edge_rows = []
+            for e in edges:
+                attrs = e.get("attrs") or {}
+                edge_rows.append({
+                    "source": e.get("source"),
+                    "target": e.get("target"),
+                    "relation": attrs.get("relation", str(attrs) if attrs else ""),
+                })
+            st.dataframe(edge_rows, use_container_width=True)
 
             with st.expander("Show raw graph JSON"):
                 st.json(kg)
