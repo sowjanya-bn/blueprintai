@@ -7,21 +7,16 @@
     <link rel="stylesheet" href="style.css" />
     <!-- try local copies first (place files into build/), fallback to CDN if not present -->
     <script src="./vis-network.min.js"></script>
-    <script src="./streamlit_component_lib.js"></script>
     <script>
-      // if local files not loaded, dynamically load from CDN
+      // Load vis-network from CDN if local copy not present.
       (function(){
-        function existsGlobal(name){ return typeof window[name] !== 'undefined'; }
-        if(!existsGlobal('vis')){
+        if(typeof window.vis === 'undefined'){
           var s = document.createElement('script');
           s.src = 'https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js';
           document.head.appendChild(s);
         }
-        if(!existsGlobal('Streamlit')){
-          var s2 = document.createElement('script');
-          s2.src = 'https://unpkg.com/@streamlit/component-lib@1.5.0/dist/index.js';
-          document.head.appendChild(s2);
-        }
+        // Note: Streamlit injects the component lib at runtime (window.Streamlit),
+        // so we don't need to load @streamlit/component-lib here and avoid CDN/proxy issues.
       })();
     </script>
   </head>
