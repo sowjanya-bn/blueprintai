@@ -14,7 +14,8 @@
       "use_when": ["multiple benefits to showcase"],
       "avoid_when": ["single-feature focus"],
       "accessibility_notes": ["Provide meaningful headings and lists"],
-      "approved_brands": ["blueprint_fit"]n+    },
+      "approved_brands": ["blueprint_fit"]
+    },
     {
       "name": "SignupForm",
       "purpose": "Collect user contact details or signups",
