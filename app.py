@@ -1188,27 +1188,78 @@ with main_tabs[5]:
         if not kg or not kg.get("nodes"):
             st.info("Knowledge graph will appear here after blueprint generation.")
         else:
+            # Build NetworkX graph object from serialized KG for exploration and optional visualization
             try:
                 import networkx as nx
                 import matplotlib.pyplot as plt
-
-                G = nx.DiGraph()
-                for n in kg.get("nodes", []):
-                    G.add_node(n.get("id"), **(n.get("attrs") or {}))
-
-                for e in kg.get("edges", []):
-                    G.add_edge(e.get("source"), e.get("target"), **(e.get("attrs") or {}))
-
-                pos = nx.spring_layout(G, seed=42)
-                fig = plt.figure(figsize=(9, 6))
-                nx.draw_networkx_nodes(G, pos, node_size=700, node_color="#7ef2b3")
-                nx.draw_networkx_edges(G, pos, arrowstyle="->", arrowsize=12)
-                nx.draw_networkx_labels(G, pos, font_size=8)
-                plt.axis("off")
-                st.pyplot(fig)
-
             except Exception:
-                st.warning("Graph visualization unavailable (missing dependencies or rendering error).")
+                nx = None
+                plt = None
+
+            G = None
+            try:
+                if nx:
+                    G = nx.DiGraph()
+                    for n in kg.get("nodes", []):
+                        G.add_node(n.get("id"), **(n.get("attrs") or {}))
+
+                    for e in kg.get("edges", []):
+                        G.add_edge(e.get("source"), e.get("target"), **(e.get("attrs") or {}))
+            except Exception:
+                G = None
+
+            # Visualization (best-effort)
+            if G and plt:
+                try:
+                    pos = nx.spring_layout(G, seed=42)
+                    fig = plt.figure(figsize=(9, 6))
+                    nx.draw_networkx_nodes(G, pos, node_size=700, node_color="#7ef2b3")
+                    nx.draw_networkx_edges(G, pos, arrowstyle="->", arrowsize=12)
+                    nx.draw_networkx_labels(G, pos, font_size=8)
+                    plt.axis("off")
+                    st.pyplot(fig)
+                except Exception:
+                    st.warning("Graph visualization unavailable (rendering error).")
+            else:
+                if not nx or not plt:
+                    st.warning("Graph visualization unavailable (missing dependencies).")
+
+            # Interactive exploration: node selector, node details, neighbors
+            node_options = [n.get("id") for n in kg.get("nodes", [])]
+
+            filter_type = st.selectbox("Filter nodes by type (optional)", options=["all"] + sorted({(n.get("attrs") or {}).get("type", "unknown") for n in kg.get("nodes", [])}))
+
+            if filter_type and filter_type != "all":
+                node_options = [n for n in node_options if ((next(filter(lambda x: x.get("id") == n, kg.get("nodes", [])) or {}).get("attrs") or {}).get("type") == filter_type)]
+
+            selected = st.selectbox("Select node to inspect", options=node_options)
+
+            if selected:
+                # show node attrs
+                node_obj = next(filter(lambda x: x.get("id") == selected, kg.get("nodes", [])), None)
+                if node_obj:
+                    st.markdown("**Node Attributes**")
+                    for k, v in (node_obj.get("attrs") or {}).items():
+                        st.write(f"- **{k}**: {v}")
+
+                # show incoming and outgoing edges
+                st.markdown("**Neighbors**")
+                incoming = [e for e in kg.get("edges", []) if e.get("target") == selected]
+                outgoing = [e for e in kg.get("edges", []) if e.get("source") == selected]
+
+                if incoming:
+                    st.markdown("**Incoming**")
+                    for e in incoming:
+                        st.write(f"- {e.get('source')}  →  {e.get('target')}  — {e.get('attrs', {})}")
+                else:
+                    st.write("No incoming edges")
+
+                if outgoing:
+                    st.markdown("**Outgoing**")
+                    for e in outgoing:
+                        st.write(f"- {e.get('source')}  →  {e.get('target')}  — {e.get('attrs', {})}")
+                else:
+                    st.write("No outgoing edges")
 
             with st.expander("Show raw graph JSON"):
                 st.json(kg)
