@@ -13,6 +13,7 @@ from validation.brand_validator import run_brand_validator
 from validation.compliance_validator import run_compliance_validator
 from validation.security_validator import run_security_validator
 from governance.drift_detector import detect_governance_drift
+from agents.explainability import build_explainability
 
 compliance_engine = ComplianceEngine()
 
@@ -71,4 +72,11 @@ def create_blueprint(brief: str) -> dict:
         governance_issues = []
 
     data["governance_issues"] = governance_issues
+    # 8. Explainability records and decision traces
+    try:
+        explainability = build_explainability(data)
+    except Exception:
+        explainability = {"records": [], "decision_traces": []}
+
+    data["explainability"] = explainability
     return data

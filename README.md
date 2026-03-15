@@ -476,7 +476,12 @@ This repository now includes completed Phase 1 through Phase 4 of the Blueprint 
     - Integration in orchestration: `src/blueprint.py` attaches `governance_issues` to blueprint outputs.
     - Streamlit UI: `app.py` includes an "8️⃣ Governance" tab to review governance findings.
 
-Phase 6 will add richer explainability records and decision traces; Phase 7 will focus on suggested fixes and ticket draft generation. If you'd like, I can start Phase 6 next.
+- **Phase 6 — Explainability (completed)**
+    - Explainability agent: `agents/explainability.py` — synthesizes retrieval evidence, variant rationale, validation findings and governance issues into `explainability.records` and `explainability.decision_traces`.
+    - Integration: `src/blueprint.py` attaches `explainability` to the blueprint output.
+    - Streamlit UI: `app.py` includes a "9️⃣ Explainability" tab that surfaces decisions, evidence, rules applied and recommended human review actions.
+
+Phase 7 will focus on suggested fixes and ticket draft generation. Would you like me to start Phase 7 (ticket generation) next? 
 
 The prototype is runnable locally and demonstrates the end-to-end workflow from brief → blueprint → graph → validation with explainable, structured outputs.
 
