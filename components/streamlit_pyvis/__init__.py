@@ -11,11 +11,12 @@ _frontend_dir = str(_HERE / "frontend" / "build")
 _component = declare_component("streamlit_pyvis", path=_frontend_dir)
 
 
-def streamlit_pyvis(nodes: list[dict], edges: list[dict]):
+def streamlit_pyvis(nodes: list[dict], edges: list[dict], selected_node: str = None):
     """Render an interactive graph and return the clicked node id or None.
 
     nodes: list of {id: str, label: str, title: str}
     edges: list of {source: str, target: str, title: str}
+    selected_node: optional node id to pre-select/highlight in the frontend
     """
-    # pass nodes and edges to the frontend; it will call setComponentValue with {selected_node}
-    return _component(nodes=nodes, edges=edges)
+    # pass nodes and edges to the frontend; frontend may accept `selected_node` to pre-highlight
+    return _component(nodes=nodes, edges=edges, selected_node=selected_node)
