@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Dict, Any
+from utils.loaders import make_component_id
 
 
 def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, Any]], num_variants: int = 3) -> Dict[str, Any]:
@@ -28,8 +29,13 @@ def generate_variants(requirements: Dict[str, Any], retrieved: List[Dict[str, An
         for name in order:
             match = next((r for r in retrieved if r["component"]["name"] == name), None)
             confidence = float(match["score"]) if match else 0.5
+            comp_id = None
+            if match:
+                comp_id = match.get("component", {}).get("component_id")
+
             comps.append({
                 "component_name": name,
+                "component_id": comp_id or make_component_id(name),
                 "content_summary": match["evidence"][:200] if match else "",
                 "rationale": f"Selected by strategy {strat}",
                 "confidence": confidence,
