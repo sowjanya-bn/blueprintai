@@ -12,6 +12,7 @@ from validation.accessibility_validator import run_accessibility_validator
 from validation.brand_validator import run_brand_validator
 from validation.compliance_validator import run_compliance_validator
 from validation.security_validator import run_security_validator
+from governance.drift_detector import detect_governance_drift
 
 compliance_engine = ComplianceEngine()
 
@@ -63,4 +64,11 @@ def create_blueprint(brief: str) -> dict:
         "compliance": compliance_report,
         "security": security_report,
     }
+    # 7. Governance drift detection
+    try:
+        governance_issues = detect_governance_drift(data)
+    except Exception:
+        governance_issues = []
+
+    data["governance_issues"] = governance_issues
     return data
