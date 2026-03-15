@@ -1,0 +1,35 @@
+{
+  "components": [
+    {
+      "name": "Hero",
+      "purpose": "Prominent page introduction with headline, subhead and CTA",
+      "use_when": ["high-level value proposition", "lead capture"],
+      "avoid_when": ["sensitive clinical claims"],
+      "accessibility_notes": ["Ensure heading hierarchy", "Contrast for CTA"],
+      "approved_brands": ["blueprint_fit", "blueprint_legal"]
+    },
+    {
+      "name": "FeatureGrid",
+      "purpose": "Display product or service features in a grid",
+      "use_when": ["multiple benefits to showcase"],
+      "avoid_when": ["single-feature focus"],
+      "accessibility_notes": ["Provide meaningful headings and lists"],
+      "approved_brands": ["blueprint_fit"]n+    },
+    {
+      "name": "SignupForm",
+      "purpose": "Collect user contact details or signups",
+      "use_when": ["lead capture", "trial signup"],
+      "avoid_when": ["collecting health data without consent"],
+      "accessibility_notes": ["Label all inputs", "Associate errors with fields"],
+      "approved_brands": ["blueprint_fit", "blueprint_legal"]
+    },
+    {
+      "name": "DisclaimerFooter",
+      "purpose": "Show regulatory disclaimers and privacy links",
+      "use_when": ["regulated products", "medical content"],
+      "avoid_when": [],
+      "accessibility_notes": ["Provide text alternatives"],
+      "approved_brands": ["blueprint_legal"]
+    }
+  ]
+}

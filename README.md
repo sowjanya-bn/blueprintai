@@ -398,6 +398,28 @@ P --> Q[Continuous Feedback Loop]
 
 The Explainability Layer provides transparency into system behaviour.
 
+## Getting started (Phase 1)
+
+Quick steps to run the Phase 1 prototype locally:
+
+1. Create a Python environment (recommended):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Copy `.env.example` to `.env` and add your LLM keys if available.
+
+3. Run the Streamlit app:
+
+```bash
+streamlit run app.py
+```
+
+Phase 1 includes the core data models, local knowledge JSON files, and a Streamlit scaffold. Subsequent phases will add the multi-agent orchestration, validators, and knowledge-graph reasoning.
+
 The system can explain:
 
 - why a component was selected  

@@ -1,0 +1,10 @@
+{
+  "brand_id": "blueprint_legal",
+  "display_name": "Blueprint Legal",
+  "approved_components": ["Hero", "SignupForm", "DisclaimerFooter"],
+  "restricted_components": ["FeatureGrid"],
+  "tokens": {
+    "colors": {"primary": "#1e293b", "accent": "#94a3b8"},
+    "typography": {"base": "Roboto", "heading": "Roboto"}
+  }
+}

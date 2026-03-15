@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "id": "a11y.color_contrast",
+      "title": "Color contrast",
+      "description": "Text and interactive elements must meet a minimum contrast ratio.",
+      "severity": "high",
+      "examples": ["Large text: 3:1", "Normal text: 4.5:1"]
+    },
+    {
+      "id": "a11y.alt_text",
+      "title": "Alternative text required",
+      "description": "Informative images must include alt text.",
+      "severity": "medium",
+      "examples": []
+    },
+    {
+      "id": "a11y.form_labels",
+      "title": "Form labels",
+      "description": "All form inputs must have associated labels.",
+      "severity": "high",
+      "examples": []
+    }
+  ]
+}
