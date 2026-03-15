@@ -81,6 +81,29 @@ if "flag_status" not in st.session_state:
     st.session_state.flag_status = {}
 
 
+def safe_serialize_for_download(obj):
+    """Return a bytes/str suitable for Streamlit download_button.
+
+    - bytes/bytearray returned as-is
+    - str returned as-is
+    - dict/list/other serialized to pretty JSON where possible
+    - fallback to str()
+    """
+    if obj is None:
+        return ""
+    if isinstance(obj, (bytes, bytearray)):
+        return obj
+    if isinstance(obj, str):
+        return obj
+    try:
+        return json.dumps(obj, indent=2)
+    except Exception:
+        try:
+            return str(obj)
+        except Exception:
+            return ""
+
+
 def blueprint_to_markdown(result: dict) -> str:
     md = "# Blueprint Plan\n\n"
 
@@ -1103,10 +1126,10 @@ with action_col1:
 with action_col2:
     st.markdown("<div style='height: 1.9rem;'></div>", unsafe_allow_html=True)
     if st.session_state.result:
-        plan_json = json.dumps(st.session_state.result, indent=2)
+        plan_json = st.session_state.result
         st.download_button(
             "Download JSON",
-            data=plan_json,
+            data=safe_serialize_for_download(plan_json),
             file_name="blueprint_plan.json",
             mime="application/json",
             use_container_width=True,
@@ -1120,7 +1143,7 @@ with action_col3:
         md_plan = blueprint_to_markdown(st.session_state.result)
         st.download_button(
             "Download MD",
-            data=md_plan,
+            data=safe_serialize_for_download(md_plan),
             file_name="blueprint_plan.md",
             mime="text/markdown",
             use_container_width=True,
@@ -1284,10 +1307,10 @@ with main_tabs[4]:
                 st.subheader("🔧 Suggested Fixes & Ticket Drafts")
                 col1, col2 = st.columns([1, 1])
                 with col1:
-                    st.download_button("Download Tickets JSON", data=json.dumps(tickets, indent=2), file_name="tickets.json", mime="application/json")
+                    st.download_button("Download Tickets JSON", data=safe_serialize_for_download(tickets), file_name="tickets.json", mime="application/json")
                 with col2:
                     md = tickets_to_markdown(tickets)
-                    st.download_button("Download Tickets MD", data=md, file_name="tickets.md", mime="text/markdown")
+                    st.download_button("Download Tickets MD", data=safe_serialize_for_download(md), file_name="tickets.md", mime="text/markdown")
 
                 for i, t in enumerate(tickets, start=1):
                     with st.expander(f"{i}. {t.get('title')}"):
@@ -1480,10 +1503,10 @@ with main_tabs[5]:
             # Export buttons
             col_export_1, col_export_2 = st.columns([1, 1])
             with col_export_1:
-                st.download_button("Download Explainability JSON", data=st.session_state.result.get("explainability"), file_name="explainability.json", mime="application/json")
+                st.download_button("Download Explainability JSON", data=safe_serialize_for_download(st.session_state.result.get("explainability")), file_name="explainability.json", mime="application/json")
             with col_export_2:
                 md = explainability_to_markdown(expl)
-                st.download_button("Download Explainability MD", data=md, file_name="explainability.md", mime="text/markdown")
+                st.download_button("Download Explainability MD", data=safe_serialize_for_download(md), file_name="explainability.md", mime="text/markdown")
 
             for rec in expl.get("records", []):
                 title = rec.get("decision")
