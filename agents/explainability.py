@@ -4,97 +4,126 @@ from typing import Dict, Any, List
 
 
 def build_explainability(blueprint: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate explanation records and decision traces for the generated blueprint.
+    """Produce structured, human-friendly explainability records.
 
-    The function is intentionally simple and deterministic: it synthesizes
-    decisions from the pipeline (variants, retrieval evidence, validators,
-    governance findings) into human-readable records.
+    Records include:
+    - `id`: unique decision id
+    - `decision`: short title
+    - `confidence`: float 0..1
+    - `rationale`: short explanation why
+    - `evidence`: list of supporting strings
+    - `rules_applied`: list of rule identifiers
+    - `linked_components`: components referenced by the decision
+    - `human_review`: recommendation string
     """
     records: List[Dict[str, Any]] = []
     traces: List[Dict[str, Any]] = []
 
     requirements = blueprint.get("requirements", {})
-    retrieved = blueprint.get("retrieved_evidence", [])
-    variants = blueprint.get("variants", [])
+    retrieved = blueprint.get("retrieved_evidence", []) or []
+    variants = blueprint.get("variants", []) or []
     validation = blueprint.get("validation_reports", {}) or {}
-    compliance_flags = blueprint.get("compliance_flags", {}).get("flags", []) if blueprint.get("compliance_flags") else []
     governance = blueprint.get("governance_issues", []) or []
 
-    # Explain retrieval: top evidence items
+    # Helper to produce an id
+    def _id(prefix: str, idx: int) -> str:
+        return f"{prefix}_{idx}"
+
+    # 1) Retrieval summary
     top_evidence = []
-    for ev in (retrieved or [])[:3]:
+    for ev in retrieved[:3]:
         comp = ev.get("component", {})
         top_evidence.append(f"{comp.get('name')} (score={ev.get('score')})")
 
-    records.append({
-        "decision": "Retrieved Components",
+    rec = {
+        "id": _id("retrieval", 1),
+        "decision": "Retrieved components",
         "confidence": 0.9,
+        "rationale": "Top semantically relevant components were selected and brand-approved items were boosted.",
         "evidence": top_evidence,
-        "rules_applied": ["retriever.semantic_search", "brand.boost"],
-        "human_review": None,
-    })
+        "rules_applied": ["retriever.semantic_search", "retrieval.brand_boost"],
+        "linked_components": [ev.get("component", {}).get("name") for ev in retrieved[:5]],
+        "human_review": "Optional",
+    }
+    records.append(rec)
+    traces.append(rec)
 
-    # Explain each variant selection
-    for v in variants:
-        comp_list = [c.get("component_name") for c in v.get("components", [])]
+    # 2) Variant explanations
+    for i, v in enumerate(variants, start=1):
+        comp_list = [c.get("component_name") for c in v.get("components", []) if c.get("component_name")]
         evidence_for_variant = []
         for name in comp_list:
-            # find retrieved evidence for this component
-            match = next((r for r in (retrieved or []) if r.get("component", {}).get("name") == name), None)
+            match = next((r for r in retrieved if r.get("component", {}).get("name") == name), None)
             if match:
                 evidence_for_variant.append(f"{name}: score={match.get('score')}")
 
-        rule_list = ["blueprint.strategy"]
-        # include brand/compliance hints
-        if requirements.get("brand"):
-            rule_list.append("brand.approved_components")
+        rationale = f"Pattern '{v.get('pattern_name')}' balances {len(comp_list)} components to meet brief goals."
         if requirements.get("compliance_sensitivity") == "High":
-            rule_list.append("policy.strict_mode")
+            rationale += " Compliance sensitivity increased conservative choices."
 
         rec = {
-            "decision": f"Choose pattern {v.get('pattern_name')}",
+            "id": _id("variant", i),
+            "decision": f"Pattern — {v.get('pattern_name')}",
             "confidence": float(v.get("fit_score", 0.0)),
+            "rationale": rationale,
             "evidence": evidence_for_variant,
-            "rules_applied": rule_list,
-            "human_review": "Recommended" if v.get("fit_score", 0) < 0.6 else "Optional",
+            "rules_applied": ["blueprint.strategy"] + (["brand.approved_components"] if requirements.get("brand") else []),
+            "linked_components": comp_list,
+            "human_review": "Recommended" if float(v.get("fit_score", 0)) < 0.6 else "Optional",
         }
         records.append(rec)
         traces.append(rec)
 
-    # Explain validation outcomes (summarize failing rules)
-    validation_notes = []
-    for name, report in (validation or {}).items():
-        for issue in (report.get("issues") or []):
-            validation_notes.append(f"{name}: {issue.get('title')} ({issue.get('severity')})")
+    # 3) Validation summary (collect failing/high-severity items)
+    val_evidence = []
+    for name, report in validation.items():
+        for issue in report.get("issues", []):
+            snippet = f"{name}: {issue.get('title')} — {issue.get('severity')}"
+            val_evidence.append(snippet)
 
-    if validation_notes:
-        records.append({
-            "decision": "Validation Issues",
+    if val_evidence:
+        rec = {
+            "id": _id("validation", 1),
+            "decision": "Validation summary",
             "confidence": 0.95,
-            "evidence": validation_notes,
+            "rationale": "Validators identified issues requiring remediation or human review.",
+            "evidence": val_evidence,
             "rules_applied": ["validators.accessibility", "validators.brand", "validators.compliance", "validators.security"],
+            "linked_components": [],
             "human_review": "Required",
-        })
+        }
+        records.append(rec)
+        traces.append(rec)
 
-    # Explain governance
+    # 4) Governance summary
     if governance:
         gov_notes = [g.get("title") for g in governance]
-        records.append({
-            "decision": "Governance Findings",
+        rec = {
+            "id": _id("governance", 1),
+            "decision": "Governance findings",
             "confidence": 0.9,
+            "rationale": "Governance checks surfaced drift or restricted components.",
             "evidence": gov_notes,
             "rules_applied": ["governance.drift_detection"],
+            "linked_components": [g.get("affected_component") for g in governance if g.get("affected_component")],
             "human_review": "Required",
-        })
+        }
+        records.append(rec)
+        traces.append(rec)
 
-    # Add a short summary decision
-    summary = f"Selected {len(variants)} variant(s); {len(validation_notes)} validation issues; {len(governance)} governance issues."
-    records.append({
-        "decision": "Summary",
+    # 5) Final summary
+    summary = f"{len(variants)} variant(s); {sum(1 for r in records if r.get('decision').lower().startswith('validation'))} validation groups; {len(governance)} governance issues."
+    rec = {
+        "id": _id("summary", 1),
+        "decision": "Overall summary",
         "confidence": 0.9,
+        "rationale": summary,
         "evidence": [summary],
         "rules_applied": [],
+        "linked_components": [],
         "human_review": "Recommended",
-    })
+    }
+    records.append(rec)
+    traces.append(rec)
 
     return {"records": records, "decision_traces": traces}

@@ -1025,15 +1025,36 @@ with main_tabs[5]:
         if not expl or not expl.get("records"):
             st.info("Explainability records will appear here after blueprint generation.")
         else:
-            for idx, rec in enumerate(expl.get("records", []), start=1):
-                with st.expander(f"{idx}. {rec.get('decision')}"):
-                    st.markdown(f"**Confidence:** {rec.get('confidence')}")
-                    st.markdown("**Evidence**")
-                    for e in rec.get("evidence", []):
-                        st.write(f"- {e}")
-                    st.markdown("**Rules Applied**")
-                    for r in rec.get("rules_applied", []):
-                        st.write(f"- {r}")
+            st.markdown(f"**Total decisions:** {len(expl.get('records', []))}")
+            for rec in expl.get("records", []):
+                title = rec.get("decision")
+                cid = rec.get("id")
+                with st.expander(f"{title}  —  {cid}"):
+                    conf = rec.get("confidence", 0.0)
+                    st.markdown("**Confidence**")
+                    st.progress(min(max(float(conf), 0.0), 1.0))
+
+                    if rec.get("rationale"):
+                        st.markdown("**Rationale**")
+                        st.write(rec.get("rationale"))
+
+                    evs = rec.get("evidence", [])
+                    if evs:
+                        st.markdown("**Evidence**")
+                        for e in evs:
+                            st.write(f"- {e}")
+
+                    rules = rec.get("rules_applied", [])
+                    if rules:
+                        st.markdown("**Rules Applied**")
+                        for r in rules:
+                            st.write(f"- {r}")
+
+                    linked = rec.get("linked_components", [])
+                    if linked:
+                        st.markdown("**Linked Components**")
+                        st.write(", ".join([str(x) for x in linked]))
+
                     if rec.get("human_review"):
                         st.markdown(f"**Human Review:** {rec.get('human_review')}")
 
