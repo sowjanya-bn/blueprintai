@@ -1,24 +1,11 @@
-import json
 import re
-from dataclasses import asdict
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from src.compliance_policies import CompliancePolicy
+from src.compliance_policies import POLICIES, CompliancePolicy
 
-
-def load_policies():
-    path = Path("data/compliance_rules.json")
-
-    with open(path, "r", encoding="utf-8") as f:
-        raw = json.load(f)
-
-    return [CompliancePolicy(**p) for p in raw]
-
-POLICIES = load_policies()
 
 class ComplianceEngine:
     def __init__(
@@ -35,11 +22,7 @@ class ComplianceEngine:
         self.semantic_threshold_borderline = semantic_threshold_borderline
         self.negative_weight = negative_weight
 
-
-
-
-
-    def run(self, brief: str) -> Dict[str, Any]:
+    def run(self, brief: str, requirements: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         brief = (brief or "").strip()
         if not brief:
             return {
@@ -59,13 +42,16 @@ class ComplianceEngine:
         flags: List[Dict[str, Any]] = []
         evidence: List[Dict[str, Any]] = []
 
-
         for policy in POLICIES:
             result = self._evaluate_policy(brief=brief, chunks=chunks, policy=policy)
 
             if result["flagged"]:
                 flags.append(result["flag"])
                 evidence.extend(result["evidence"])
+
+        context_flags, context_evidence = self._build_contextual_flags(brief, requirements or {})
+        flags = self._merge_flags(flags, context_flags)
+        evidence.extend(context_evidence)
 
         flags = self._sort_flags(flags)
 
@@ -90,7 +76,6 @@ class ComplianceEngine:
         chunks: List[str],
         policy: CompliancePolicy,
     ) -> Dict[str, Any]:
-
         keyword_score, keyword_hits = self._keyword_match_score(brief, policy.keywords)
 
         positive_match = self._best_semantic_match(chunks, policy.example_phrases)
@@ -304,7 +289,170 @@ class ComplianceEngine:
         if any(f["review_type"] == "regional_review" for f in flags):
             recommendations.append("Check region-specific regulatory expectations for the target market.")
 
+        if any(f["review_type"] == "privacy_review" for f in flags):
+            recommendations.append("Validate privacy notice, lawful basis, and consent handling for personal data collection.")
+
+        if any(f["review_type"] == "financial_legal_review" for f in flags):
+            recommendations.append("Review financial promotions, risk disclosures, and claim wording with legal/compliance.")
+
         if any(f["review_type"] == "accessibility_review" for f in flags):
             recommendations.append("Confirm accessibility requirements are reflected in the design output.")
 
         return recommendations
+
+    def _merge_flags(self, semantic_flags: List[Dict[str, Any]], context_flags: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        severity_rank = {"high": 3, "medium": 2, "low": 1}
+        confidence_rank = {"high": 3, "medium": 2, "low": 1}
+
+        merged: Dict[str, Dict[str, Any]] = {}
+        for flag in semantic_flags + context_flags:
+            key = flag.get("policy_id") or f"{flag.get('label')}::{flag.get('review_type')}"
+            if key not in merged:
+                merged[key] = flag
+                continue
+
+            current = merged[key]
+            incoming_rank = (
+                severity_rank.get(flag.get("severity", "low"), 0),
+                confidence_rank.get(flag.get("confidence", "low"), 0),
+                float(flag.get("semantic_score", 0.0) or 0.0),
+            )
+            current_rank = (
+                severity_rank.get(current.get("severity", "low"), 0),
+                confidence_rank.get(current.get("confidence", "low"), 0),
+                float(current.get("semantic_score", 0.0) or 0.0),
+            )
+
+            if incoming_rank > current_rank:
+                merged[key] = flag
+
+        return list(merged.values())
+
+    def _build_contextual_flags(self, brief: str, requirements: Dict[str, Any]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        text = (brief or "").lower()
+        market = str(requirements.get("market") or "").upper()
+
+        industry = self._infer_industry(text)
+        collects_personal_data = self._likely_collects_personal_data(text)
+        is_eu = ("EU" in market) or bool(re.search(r"\beu\b|\beurope\b|european", text, re.IGNORECASE))
+
+        flags: List[Dict[str, Any]] = []
+        evidence: List[Dict[str, Any]] = []
+
+        def add_flag(
+            policy_id: str,
+            label: str,
+            description: str,
+            severity: str,
+            review_type: str,
+            confidence: str,
+            reason: str,
+            keyword_hits: Optional[List[str]] = None,
+        ) -> None:
+            hits = keyword_hits or []
+            flags.append(
+                {
+                    "policy_id": policy_id,
+                    "label": label,
+                    "description": description,
+                    "severity": severity,
+                    "review_type": review_type,
+                    "confidence": confidence,
+                    "keyword_hits": hits,
+                    "keyword_score": round(min(1.0, len(hits) / 3.0), 3),
+                    "semantic_score": 0.0,
+                    "raw_semantic_score": 0.0,
+                    "negative_score": 0.0,
+                    "matched_brief_text": brief[:180] if brief else None,
+                    "matched_policy_example": None,
+                    "reason": reason,
+                    "status": "Potential review needed",
+                }
+            )
+            evidence.append(
+                {
+                    "policy_id": policy_id,
+                    "label": label,
+                    "source": "context",
+                    "matched_brief_text": brief[:180] if brief else None,
+                    "matched_policy_example": None,
+                    "semantic_score": 0.0,
+                    "raw_semantic_score": 0.0,
+                    "negative_score": 0.0,
+                    "keyword_hits": hits,
+                }
+            )
+
+        if industry == "healthcare":
+            health_hits = [k for k in ["patient", "treatment", "medical", "clinical", "therapy", "symptom"] if k in text]
+            add_flag(
+                policy_id="industry.healthcare_review",
+                label="Healthcare content regulatory review",
+                description="Healthcare-related claims and patient-facing medical content require medical/legal review.",
+                severity="high",
+                review_type="medical_legal_review",
+                confidence="high" if health_hits else "medium",
+                reason="Brief indicates healthcare context. Apply medical/legal review controls for claims and patient communication.",
+                keyword_hits=health_hits,
+            )
+
+        if industry == "financial":
+            fin_hits = [k for k in ["financial", "bank", "investment", "loan", "insurance", "credit", "returns", "interest"] if k in text]
+            add_flag(
+                policy_id="industry.financial_review",
+                label="Financial promotions compliance review",
+                description="Financial content should include fair, clear risk disclosures and legal/compliance review.",
+                severity="high",
+                review_type="financial_legal_review",
+                confidence="high" if fin_hits else "medium",
+                reason="Brief indicates financial domain. Enforce financial promotions and disclosure review.",
+                keyword_hits=fin_hits,
+            )
+
+        if is_eu:
+            eu_hits = [k for k in ["eu", "europe", "gdpr", "privacy", "consent"] if k in text]
+            add_flag(
+                policy_id="regional.eu_gdpr_applicability",
+                label="EU GDPR applicability check",
+                description="EU-targeted experiences should be reviewed for GDPR lawful basis, transparency, and data subject rights handling.",
+                severity="high" if collects_personal_data else "medium",
+                review_type="privacy_review",
+                confidence="high" if collects_personal_data else "medium",
+                reason="Target market appears to be EU/Europe. GDPR controls should be applied.",
+                keyword_hits=eu_hits,
+            )
+
+            if collects_personal_data:
+                data_hits = [k for k in ["signup", "sign up", "register", "form", "contact", "email", "phone", "book"] if k in text]
+                add_flag(
+                    policy_id="regional.eu_consent_required",
+                    label="Consent and privacy notice required for EU data capture",
+                    description="When collecting personal data in the EU, explicit consent and clear privacy information are required.",
+                    severity="high",
+                    review_type="privacy_review",
+                    confidence="high",
+                    reason="EU context plus likely personal-data collection detected.",
+                    keyword_hits=data_hits,
+                )
+
+        return flags, evidence
+
+    def _infer_industry(self, text: str) -> str:
+        healthcare_markers = [
+            "healthcare", "patient", "patients", "medical", "clinical", "treatment", "therapy", "hospital", "pharma", "side effect",
+        ]
+        financial_markers = [
+            "financial", "finance", "bank", "banking", "loan", "credit", "insurance", "investment", "mortgage", "wealth", "fintech",
+        ]
+
+        if any(marker in text for marker in healthcare_markers):
+            return "healthcare"
+        if any(marker in text for marker in financial_markers):
+            return "financial"
+        return "general"
+
+    def _likely_collects_personal_data(self, text: str) -> bool:
+        data_collection_markers = [
+            "signup", "sign up", "register", "form", "contact", "email", "phone", "book", "appointment", "apply", "lead",
+        ]
+        return any(marker in text for marker in data_collection_markers)

@@ -1,0 +1,6 @@
+{
+  "market": "UK",
+  "gdpr": false,
+  "privacy_strength": "standard",
+  "notes": "UK follows UK-GDPR; for prototype we treat as less strict than EU in examples."
+}

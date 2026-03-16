@@ -1,405 +1,789 @@
-# BlueprintAI
+# Blueprint AI
 
-**BlueprintAI** is an AI‑assisted **design system planning and
-compliance copilot** for regulated web delivery workflows.
+<p align="center">
+AI-assisted orchestration platform for accelerating the web design lifecycle while ensuring  
+<b>brand consistency, accessibility, compliance, and design-system governance.</b>
+</p>
 
-It converts a high‑level webpage brief into an explainable, reviewable
-and governed **page blueprint** by combining:
+---
 
-• requirement extraction\
-• semantic retrieval over design‑system components (RAG)\
-• blueprint variant generation\
-• semantic compliance risk detection\
-• human review checkpoints\
-• developer handoff generation
+# Overview
 
-Instead of generating arbitrary UI or code, BlueprintAI helps teams move
-from:
+**Blueprint AI** is a research prototype that explores how artificial intelligence can coordinate the **entire web design and delivery lifecycle**, rather than simply generating UI or code from prompts.
 
-**brief → structured requirements → design‑system aligned blueprint →
-compliance review → approved implementation**
+Most AI web tools today operate on a narrow pipeline:
 
-This prototype explores how AI can support **governed web delivery** in
-environments such as healthcare, pharma, finance and other
-compliance‑sensitive domains.
-
-------------------------------------------------------------------------
-
-# Why BlueprintAI
-
-Modern organisations maintain large **design systems** and strict
-**compliance processes**.
-
-When a team receives a webpage brief they must determine:
-
-• which design system components to use\
-• how those components should be structured\
-• whether regulatory review is required\
-• how the page should be implemented by developers
-
-This process often involves many manual steps across design, product,
-regulatory and engineering teams.
-
-BlueprintAI accelerates this process while keeping **humans in control
-of critical decisions**.
-
-------------------------------------------------------------------------
-
-# Core Workflow
-
-The system follows a human‑centred AI workflow.
-
-    Brief
-      ↓
-    Requirement Extraction
-      ↓
-    Design System Retrieval (RAG)
-      ↓
-    Blueprint Variant Generation
-      ↓
-    Compliance Risk Assessment
-      ↓
-    Human Review & Approval
-      ↓
-    Developer Handoff
-
-This workflow ensures AI **assists planning without bypassing
-governance**.
-
-------------------------------------------------------------------------
-
-# Key Features
-
-## 1. Brief Interpretation
-
-The user provides a natural language webpage brief such as:
-
-    Create a patient-facing webpage for a migraine treatment in the UK.
-    Explain the treatment in simple language, include safety information,
-    FAQs, and a clear next step to speak with a doctor.
-
-BlueprintAI extracts structured signals such as:
-
-• audience\
-• market\
-• content type\
-• compliance sensitivity
-
-These signals guide blueprint generation and compliance checks.
-
-------------------------------------------------------------------------
-
-## 2. RAG over Design‑System Components
-
-BlueprintAI retrieves relevant components from a design‑system knowledge
-base using semantic similarity.
-
-Example components:
-
-• Hero\
-• Treatment Overview Cards\
-• Safety Accordion\
-• FAQ Section\
-• CTA Block\
-• Disclaimer Footer
-
-Embeddings are generated using SentenceTransformers and similarity
-search determines which components best match the brief.
-
-This ensures the generated blueprint remains aligned with **approved
-design system components**.
-
-------------------------------------------------------------------------
-
-## 3. Blueprint Variant Generation
-
-Instead of producing a single answer, the LLM generates **multiple
-blueprint variants**.
-
-Each variant includes:
-
-• component sequence\
-• content summary\
-• rationale\
-• fit score\
-• confidence
-
-Example:
-
-    Variant: Educational Treatment Page
-
-    Hero
-    → Treatment Overview Cards
-    → Safety Accordion
-    → FAQ Section
-    → CTA Block
-    → Disclaimer Footer
-
-Variants allow teams to **compare structured delivery options** rather
-than accept a single AI output.
-
-------------------------------------------------------------------------
-
-## 4. Pattern Reasoning
-
-For each blueprint variant the system explains **why** the structure was
-chosen.
-
-Example reasoning may include:
-
-• hero establishes immediate context and next step\
-• overview cards simplify complex medical concepts\
-• accordion manages dense safety information\
-• FAQs reduce patient uncertainty
-
-This improves transparency and supports design reviews.
-
-------------------------------------------------------------------------
-
-## 5. Semantic Compliance Detection
-
-BlueprintAI includes a compliance engine that combines:
-
-• rule‑based checks\
-• semantic similarity matching\
-• keyword signals\
-• severity scoring\
-• confidence scoring
-
-Flags may include review categories such as:
-
-• medical claim review\
-• safety information review\
-• patient‑facing content review\
-• market‑specific compliance review\
-• accessibility review
-
-Each flag contains:
-
-• review category\
-• severity level\
-• confidence\
-• semantic match evidence\
-• explanation for the flag
-
-This helps teams identify governance risks **before implementation
-begins**.
-
-------------------------------------------------------------------------
-
-## 6. Explainable Evidence
-
-BlueprintAI surfaces the evidence behind AI decisions.
-
-For compliance checks and component reasoning the system can display:
-
-• matched brief text\
-• matched policy examples\
-• similarity scores\
-• reasoning explanations
-
-This improves trust and supports auditability.
-
-------------------------------------------------------------------------
-
-## 7. Human‑in‑the‑Loop Review
-
-The interface highlights where **human approval is required**.
-
-Typical stakeholders may include:
-
-• medical affairs\
-• regulatory teams\
-• accessibility QA\
-• product or design leads
-
-This ensures AI outputs remain **reviewable and governable**.
-
-------------------------------------------------------------------------
-
-## 8. Variant Approval
-
-Users can inspect multiple blueprint variants and approve the one that
-best fits the brief.
-
-This encourages **decision support rather than blind automation**.
-
-------------------------------------------------------------------------
-
-## 9. Developer Handoff
-
-After approval the system produces a developer‑ready page structure.
-
-Example output:
-
-    Page Type: Patient Treatment Page
-
-    Layout
-    1. Hero
-    2. Treatment Overview Cards
-    3. Safety Accordion
-    4. FAQ Section
-    5. CTA Block
-    6. Disclaimer Footer
-
-Each component may include:
-
-• content guidance\
-• accessibility notes\
-• implementation hints
-
-This bridges the gap between design planning and engineering.
-
-------------------------------------------------------------------------
-
-## 10. Wireframe Preview
-
-BlueprintAI includes a lightweight visual preview that approximates the
-layout structure.
-
-This allows teams to quickly validate page flow before implementation.
-
-------------------------------------------------------------------------
-
-# Example Output Structure
-
-Example simplified output:
-
-``` json
-{
-  "requirements": {
-    "audience": "UK migraine patients",
-    "market": "United Kingdom",
-    "content_type": "Patient education page"
-  },
-  "variants": [
-    {
-      "pattern_name": "Educational Flow",
-      "fit_score": 0.94
-    }
-  ],
-  "compliance": {
-    "flags": [
-      {
-        "review_type": "medical_claim_review",
-        "severity": "high",
-        "confidence": "medium"
-      }
-    ]
-  }
-}
+```
+Prompt → UI → Code
 ```
 
-------------------------------------------------------------------------
+However, real web development requires coordination across many stages including:
 
-# User Interface
+- requirement interpretation  
+- architecture planning  
+- UX design  
+- design-system integration  
+- accessibility validation  
+- compliance checks  
+- security analysis  
+- deployment workflows  
+- long-term governance  
 
-The Streamlit UI presents the workflow clearly.
+Blueprint AI proposes an **AI-assisted orchestration platform** where multiple specialised AI agents collaborate to transform a **client brief into a deployable web experience**, while ensuring that generated outputs remain **compliant, explainable, and aligned with design systems**.
 
-Main sections include:
+---
 
-• Blueprint\
-• Variants\
-• Compliance & Review\
-• Evidence\
-• Developer Handoff\
-• Wireframe Preview
+# Key Capabilities
 
-This structure mirrors a real web delivery pipeline.
+The system demonstrates how AI can assist with:
 
-------------------------------------------------------------------------
+- interpreting client briefs  
+- generating structured requirement specifications  
+- recommending design-system components  
+- generating page blueprints and code templates  
+- validating accessibility and regulatory compliance  
+- detecting design-system drift  
+- generating explainable reports  
+- recommending remediation actions  
+- supporting human-in-the-loop decision making  
 
-# Technology Stack
-
-Frontend\
-• Streamlit
-
-AI / LLM\
-• Google Gemini Flash
-
-Embeddings\
-• SentenceTransformers
-
-Retrieval\
-• Semantic similarity search
-
-Backend\
-• Python
-
-------------------------------------------------------------------------
+---
 
 # System Architecture
 
-    User Brief
-        ↓
-    Requirement Extraction (LLM)
-        ↓
-    Component Retrieval (Embeddings + RAG)
-        ↓
-    Blueprint Variant Generation (LLM)
-        ↓
-    Compliance Detection (Semantic + Rules)
-        ↓
-    Human Governance Layer
-        ↓
-    Developer Handoff
+Blueprint AI follows a **layered architecture** designed to separate generation, validation, governance, and human oversight.
 
-------------------------------------------------------------------------
+This separation ensures that:
 
-# Running the Project
+- AI **generates artefacts**  
+- independent systems **validate them**  
+- governance modules **monitor consistency**  
+- humans **approve critical decisions**
 
-Create a virtual environment
+---
 
-    python -m venv blue
-    source blue/bin/activate
+# Architecture Diagram
 
-Install dependencies
+```mermaid
+flowchart TD
 
-    pip install -r requirements.txt
+A[Client Brief & Context Inputs]
 
-Add environment variables
+A --> B[Input & Context Layer]
 
-    export GEMINI_API_KEY=your_api_key
-    export GEMINI_MODEL=gemini-3-flash-preview
+B --> C[Knowledge & Retrieval Layer]
 
-Run the application
+C --> D[Intelligence & Multi-Agent Orchestration]
 
-    streamlit run app.py
+D --> E[Delivery / Generation Layer]
 
-------------------------------------------------------------------------
+E --> F[Validation Layer]
 
-# Future Improvements
+F --> G[Governance Layer]
 
-Possible extensions include:
+G --> H[Explainability & Audit Layer]
 
-• stronger compliance policy libraries\
-• accessibility validation engine\
-• richer component knowledge graphs\
-• design token mapping\
-• Figma integration\
-• frontend code scaffolding\
-• workflow persistence and reviewer attribution\
-• evaluation metrics for blueprint quality
+H --> I[Human Review Layer]
+```
 
-------------------------------------------------------------------------
+---
 
-# Why This Matters
+# Architecture Layers
 
-AI can accelerate web delivery only if it respects real organisational
-constraints.
+## 1. Input and Context Layer
 
-BlueprintAI demonstrates how AI can assist while maintaining:
+The **Input Layer** collects all information required to initiate the web delivery workflow.
 
-• design‑system alignment\
-• explainability\
-• governance oversight\
-• human decision control
+Typical inputs include:
 
-This approach enables **AI‑assisted delivery without sacrificing
-compliance or trust**.
+- client briefs  
+- stakeholder notes  
+- brand guidelines  
+- design-system documentation  
+- accessibility standards  
+- compliance policies  
+- architecture templates  
+- localisation rules  
+- previous project artefacts  
 
-------------------------------------------------------------------------
+### Responsibilities
+
+- document ingestion  
+- text parsing  
+- requirement extraction  
+- context structuring  
+
+---
+
+## 2. Knowledge and Retrieval Layer
+
+This layer provides contextual knowledge required for grounded AI reasoning.
+
+### Vector Database
+
+Stores embeddings of documents including:
+
+- design-system documentation  
+- brand guidelines  
+- accessibility policies  
+- compliance rules  
+- engineering standards  
+
+Supports **Retrieval Augmented Generation (RAG)**.
+
+---
+
+### Knowledge Graph
+
+Represents relationships between:
+
+- requirements  
+- pages  
+- components  
+- APIs  
+- policies  
+- localisation variants  
+
+The graph enables traceability across system decisions.
+
+---
+
+### Policy and Rule Engine
+
+Certain rules must be enforced deterministically rather than probabilistically.
+
+Examples include:
+
+- approved component variants  
+- consent requirements for personal data  
+- typography and colour tokens  
+- regional regulatory rules  
+
+---
+
+# Knowledge Graph Schema
+
+The knowledge graph acts as the system’s **structured reasoning backbone**. It links project requirements to pages, components, APIs, compliance obligations, brand rules, and localisation variants.
+
+## What the knowledge graph captures
+
+- which **requirements** lead to which **pages**  
+- which **pages** use which **components**  
+- which **components** depend on which **design tokens**  
+- which **forms or APIs** introduce compliance obligations  
+- which **policies** apply to a page or component  
+- which **market variants** affect layout or content  
+- which **deprecated components** affect generated blueprints  
+
+---
+
+## Knowledge Graph Schema Diagram
+
+```mermaid
+flowchart LR
+
+R[Requirement]
+U[User Role]
+P[Page]
+UF[User Flow]
+C[Component]
+DT[Design Token]
+API[API / Integration]
+F[Form / Data Capture]
+POL[Policy / Rule]
+COMP[Compliance Obligation]
+BR[Brand Guideline]
+LOC[Localisation Variant]
+DEP[Deprecated Component]
+
+R -->|defines| P
+R -->|constrains| UF
+U -->|interacts with| UF
+UF -->|navigates through| P
+
+P -->|uses| C
+C -->|styled by| DT
+C -->|may be replaced by| DEP
+
+P -->|contains| F
+F -->|submits to| API
+API -->|subject to| POL
+
+P -->|must satisfy| POL
+C -->|must satisfy| BR
+F -->|triggers| COMP
+POL -->|implements| COMP
+
+LOC -->|modifies| P
+LOC -->|modifies| BR
+LOC -->|modifies| POL
+```
+
+---
+
+# Multi-Agent System
+
+The intelligence layer contains a **multi-agent architecture** where specialised agents collaborate under the control of an **Orchestrator Agent**.
+
+## Multi-Agent Interaction Diagram
+
+```mermaid
+flowchart TD
+
+A[Client Brief]
+
+A --> B[Orchestrator Agent]
+
+B --> C[Brief Understanding Agent]
+
+B --> D[UX & Journey Agent]
+
+B --> E[Architecture Planning Agent]
+
+B --> F[Design System Retrieval Agent]
+
+F --> G[Code Generation Agent]
+
+G --> H[Validation Agents]
+
+H --> I[Governance Agent]
+
+I --> J[Repair & Ticket Generation]
+
+J --> K[Human Review]
+```
+
+---
+
+# Delivery Layer
+
+The Delivery Layer produces **intermediate artefacts** required throughout the development lifecycle.
+
+Examples include:
+
+- requirement specifications  
+- sitemaps  
+- wireframes  
+- page blueprints  
+- component compositions  
+- code templates  
+- deployment manifests  
+
+Generating structured artefacts rather than full websites improves traceability.
+
+---
+
+# Validation Layer
+
+All generated artefacts pass through an independent validation pipeline.
+
+### Accessibility Validation
+
+Ensures compliance with WCAG guidelines by checking:
+
+- colour contrast  
+- semantic HTML  
+- keyboard accessibility  
+- alternative text  
+- form labels  
+
+---
+
+### Compliance Validation
+
+Evaluates regulatory requirements such as:
+
+- GDPR consent flows  
+- privacy policy links  
+- cookie banners  
+- personal data handling  
+
+---
+
+### Brand Consistency Validation
+
+Ensures alignment with brand guidelines:
+
+- approved colour tokens  
+- typography rules  
+- spacing tokens  
+- component usage  
+
+---
+
+### Security Validation
+
+Detects vulnerabilities including:
+
+- injection risks  
+- insecure API calls  
+- exposed secrets  
+- weak input validation  
+
+---
+
+### Performance & SEO Validation
+
+Checks:
+
+- performance indicators  
+- metadata structure  
+- search engine optimisation practices  
+
+---
+
+# Governance Layer
+
+The Governance Layer ensures long-term alignment with the official design system.
+
+Governance checks include:
+
+- deprecated component detection  
+- design token drift detection  
+- off-system UI patterns  
+- duplicated custom components  
+- cross-project consistency monitoring  
+
+When inconsistencies are detected, the system recommends upgrades or replacements.
+
+---
+
+# Lifecycle Workflow
+
+The orchestrator coordinates the entire pipeline from brief to deployment.
+
+## Lifecycle Pipeline Diagram
+
+```mermaid
+flowchart TD
+
+A[Client Brief]
+
+A --> B[Requirement Extraction]
+
+B --> C[Knowledge Graph Construction]
+
+C --> D[Architecture Planning]
+
+D --> E[UX & Wireframe Generation]
+
+E --> F[Design System Component Retrieval]
+
+F --> G[Page Blueprint Generation]
+
+G --> H[Code Template Generation]
+
+H --> I[Accessibility Validation]
+
+I --> J[Compliance Validation]
+
+J --> K[Brand Validation]
+
+K --> L[Security Validation]
+
+L --> M[Governance Checks]
+
+M --> N[Repair Suggestions]
+
+N --> O[Human Review]
+
+O --> P[Deployment Preview]
+
+P --> Q[Continuous Feedback Loop]
+```
+
+---
+
+# Explainability Layer
+
+The Explainability Layer provides transparency into system behaviour.
+
+**Vendored Assets**
+- **vis-network**: Vendored minified file at `components/streamlit_pyvis/frontend/build/vis-network.min.js` (version 9.1.2). License: Apache-2.0 or MIT (dual-licensed). Committed to branch `beta` to ensure the Streamlit custom component works in network-restricted environments.
+
+
+## Phase 1–3 Implementation Summary
+
+This repository contains the Phase 1–3 research prototype of Blueprint AI. Below is a concise summary of what each phase implements and where to look in the codebase.
+
+- **Phase 1 — Foundation**
+    - Project scaffold, Pydantic data models: `models/schemas.py`.
+    - Local knowledge JSON files: `knowledge/` (design system, accessibility rules, compliance rules, brands, markets).
+    - Basic JSON loaders: `utils/loaders.py`.
+    - Streamlit scaffold and UI shell: `app.py` (initial UI and tab layout).
+    - Run instructions: `pip install -r requirements.txt` and `streamlit run app.py`.
+
+- **Phase 2 — Multi-Agent Pipeline (local rule-based)**
+    - `agents/brief_analyzer.py`: heuristics to extract structured requirements from a client brief.
+    - `agents/retrieval_agent.py`: brand-aware wrapper around the semantic retriever (`src/retriever.py`).
+    - `agents/blueprint_generator.py`: simple rule-based blueprint generator producing 3 variants.
+    - Integration: `src/blueprint.py` now orchestrates analyse → retrieve → generate and attaches compliance output.
+
+- **Phase 3 — Knowledge Graph & Interactive Exploration**
+    - Knowledge-graph builder using NetworkX: `knowledge/graph_builder.py` (serializable graph with nodes and edges).
+    - Graph attached to blueprint outputs as `knowledge_graph` (serialized nodes/edges) by `src/blueprint.py`.
+    - Interactive inspection UI added to Streamlit (`app.py` tab "Knowledge Graph"): static visualization, node inspector, and raw JSON.
+    - Lightweight Streamlit custom component for robust interactive visualization: `components/streamlit_pyvis/` (frontend and Python wrapper). Build step documented below.
+
+### Build step for interactive component
+If you want the click-to-select interactive graph viewer, build the lightweight frontend once:
+
+```bash
+cd components/streamlit_pyvis/frontend
+npm install   # optional
+npm run build
+cd -
+```
+
+If you skip the build step the app will fall back to a static matplotlib visualization.
+
+### Files of interest
+- Orchestration and generators: `src/blueprint.py`, `agents/`
+- Retrieval & compliance: `src/retriever.py`, `src/compliance_engine.py`, `src/compliance_policies.py`
+- Knowledge: `knowledge/` and `data/components.json`
+- UI: `app.py`, `components/streamlit_pyvis/`
+
+Phase 4 will add validators (accessibility, brand, compliance, security) and richer explainability outputs. If you want to proceed, I can implement Phase 4 next.
+
+## Progress & Completed Phases
+
+This repository now includes completed Phase 1 through Phase 4 of the Blueprint AI prototype.
+
+- **Phase 1 — Foundation (completed)**
+    - Project scaffold, Pydantic models: `models/schemas.py`
+    - Knowledge JSONs: `knowledge/` (design system, accessibility rules, compliance rules, brands, markets)
+    - Basic loaders: `utils/loaders.py`
+    - Streamlit scaffold: `app.py`
+    - Data: `data/components.json`
+
+- **Phase 2 — Multi-Agent Pipeline (completed)**
+    - Brief analyzer: `agents/brief_analyzer.py`
+    - Retrieval agent: `agents/retrieval_agent.py`
+    - Blueprint generator: `agents/blueprint_generator.py`
+    - Integration: `src/blueprint.py` orchestrates analyse → retrieve → generate
+
+- **Phase 3 — Knowledge Graph & Interactive Viewer (completed)**
+    - Knowledge graph builder: `knowledge/graph_builder.py`
+    - Serialized graph included in blueprint output: `knowledge_graph`
+    - Interactive viewer: lightweight Streamlit custom component in `components/streamlit_pyvis/` (build step documented above)
+    - Streamlit UI: knowledge graph tab and node inspector in `app.py`
+
+- **Phase 4 — Validators (completed)**
+    - Accessibility validator: `validation/accessibility_validator.py`
+    - Brand validator: `validation/brand_validator.py`
+    - Compliance validator: `validation/compliance_validator.py`
+    - Security validator: `validation/security_validator.py`
+    - Validation summary surfaced in the UI (Compliance & Review tab)
+
+- **Phase 5 — Governance (completed)**
+    - Governance drift detector: `governance/drift_detector.py` — detects restricted, deprecated, off-system components and token drift.
+    - Integration in orchestration: `src/blueprint.py` attaches `governance_issues` to blueprint outputs.
+    - Streamlit UI: `app.py` includes an "8️⃣ Governance" tab to review governance findings.
+
+- **Phase 6 — Explainability (completed)**
+    - Explainability agent: `agents/explainability.py` — synthesizes retrieval evidence, variant rationale, validation findings and governance issues into `explainability.records` and `explainability.decision_traces`.
+    - Integration: `src/blueprint.py` attaches `explainability` to the blueprint output.
+    - Streamlit UI: `app.py` includes a "9️⃣ Explainability" tab that surfaces decisions, evidence, rules applied and recommended human review actions.
+
+Phase 7 will focus on suggested fixes and ticket draft generation. Would you like me to start Phase 7 (ticket generation) next? 
+
+The prototype is runnable locally and demonstrates the end-to-end workflow from brief → blueprint → graph → validation with explainable, structured outputs.
+
+If you'd like, I can now:
+- Generate ticket drafts for failing issues (Phase 7)
+- Add richer explainability records and decision traces (Phase 6)
+- Improve UI polish and export capabilities
+
+
+## Getting started (Phase 1)
+
+Quick steps to run the Phase 1 prototype locally:
+
+1. Create a Python environment (recommended):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Copy `.env.example` to `.env` and add your LLM keys if available.
+
+3. Run the Streamlit app:
+
+```bash
+streamlit run app.py
+```
+
+Phase 1 includes the core data models, local knowledge JSON files, and a Streamlit scaffold. Subsequent phases will add the multi-agent orchestration, validators, and knowledge-graph reasoning.
+
+## Phase 3 — Knowledge Graph & Component
+
+This prototype includes a lightweight interactive knowledge-graph viewer implemented as a Streamlit custom component.
+
+To build the component frontend (required for the interactive viewer):
+
+```bash
+cd components/streamlit_pyvis/frontend
+npm install   # optional if you don't need to run the build script
+npm run build
+cd -
+```
+
+The `npm run build` step simply copies the frontend files into `components/streamlit_pyvis/frontend/build/` which is used by the Python component wrapper. After this, restart the Streamlit app.
+
+If you prefer not to build the component, the app falls back to a static matplotlib visualization.
+
+The system can explain:
+
+- why a component was selected  
+- which rule triggered validation failures  
+- which knowledge sources were retrieved  
+- recommended remediation steps  
+
+Explainability improves trust in AI-assisted workflows.
+
+---
+
+# Human Review Layer
+
+Human oversight is integrated throughout the system.
+
+### Human checkpoints
+
+1. requirement confirmation  
+2. architecture approval  
+3. UX review  
+4. validation review  
+5. governance decisions  
+6. deployment approval  
+
+Blueprint AI therefore operates as **AI-assisted orchestration rather than full automation**.
+
+---
+
+# Prototype Scope
+
+This repository contains a prototype demonstrating three core capabilities.
+
+### A — Brief to Blueprint Generation
+
+AI interprets client briefs and recommends design-system components.
+
+Outputs include:
+
+- page blueprints  
+- component compositions  
+- code templates  
+
+---
+
+### B — Automated Validation
+
+Generated artefacts are validated against:
+
+- accessibility standards  
+- brand guidelines  
+- regulatory compliance  
+
+---
+
+### C — Design System Governance
+
+The system detects:
+
+- deprecated components  
+- design token drift  
+- off-system patterns  
+
+---
+
+# Prototype Interface
+
+The prototype interface is implemented using **Streamlit**.
+
+Streamlit enables rapid development of an interactive research demo that allows users to:
+
+- submit project briefs  
+- inspect structured requirements  
+- view generated page blueprints  
+- analyse validation reports  
+- explore governance findings  
+- inspect explainability outputs  
+
+This lightweight interface ensures development effort focuses on **AI orchestration and validation logic rather than frontend engineering**.
+
+---
+
+# Technology Stack
+
+### Frontend
+
+- Streamlit  
+
+### Backend
+
+- Python  
+- FastAPI (optional API services)  
+
+### Agent Framework
+
+- LangGraph or CrewAI  
+
+### AI Models
+
+- OpenAI API  
+- structured prompting  
+- tool calling  
+
+### Retrieval Layer
+
+- pgvector / Chroma / Pinecone  
+
+### Knowledge Graph
+
+- Neo4j or PostgreSQL graph model  
+
+### Validation Tools
+
+- axe-core  
+- Lighthouse  
+- ESLint  
+- Semgrep  
+- custom rule engine  
+
+---
+
+# Repository Structure
+
+```
+blueprint-ai/
+
+agents/
+    orchestrator.py
+    brief_agent.py
+    ux_agent.py
+    retrieval_agent.py
+    code_agent.py
+
+validation/
+    accessibility_validator.py
+    compliance_validator.py
+    brand_validator.py
+    security_validator.py
+
+governance/
+    drift_detector.py
+    component_registry.py
+
+knowledge/
+    rag_pipeline.py
+    knowledge_graph.py
+    policy_engine.py
+
+ui/
+    streamlit_app.py
+
+docs/
+    architecture.md
+    workflow.md
+```
+
+---
+
+# Benefits
+
+### Accelerated Web Delivery
+
+AI assists with requirement analysis, component retrieval, and validation.
+
+### Design System Governance
+
+Prevents UI drift across projects.
+
+### Regulatory Compliance
+
+Automated checks reduce compliance risks.
+
+### Explainable AI
+
+Transparent reasoning improves trust.
+
+### Scalable Architecture
+
+Modular design allows future extensions.
+
+---
+
+# Future Work
+
+Potential future extensions include:
+
+- automated localisation workflows  
+- integration with design tools such as Figma  
+- reinforcement learning from human feedback  
+- automated A/B testing optimisation  
+- enterprise design-system management tools  
+
+---
 
 # License
 
-Prototype created for hackathon experimentation.
+This repository is intended for **academic and research purposes**.
+
+---
+
+**Recent Work (Mar 15, 2026)**
+
+- **Phases Completed**: Phase 1 → Phase 6 implemented (foundation, multi-agent pipeline, knowledge graph + interactive viewer, validators, governance drift detection, explainability).
+- **New modules added**: `src/ticket_generator.py` (ticket draft generator), `agents/explainability.py` (polished explainability records), multiple `validation/*` validators, `governance/drift_detector.py`.
+- **App enhancements (`app.py`)**: explainability export (JSON/MD), "Jump to graph" wiring (stores `kg_selected_node`), ticket draft UI + downloads, `safe_serialize_for_download()` helper for reliable `st.download_button`, KG auto-rebuild attempt and user-facing messages, deterministic widget keys and key-audit fixes.
+- **Component improvements**: `components/streamlit_pyvis/` updates — frontend (`index.html`, `index.js`, `style.css`) now supports a `selected_node` prop, highlights/focuses nodes, and includes local/CDN fallback for `vis-network`. Python wrapper accepts `selected_node` and returns clicked node.
+- **Retrieval & IDs**: retrieval results now include stable `component_id` values (helper `utils/loaders.make_component_id`) and `agents/blueprint_generator.py` includes `component_id` on variant components for robust cross-references.
+- **Knowledge graph**: `knowledge/graph_builder.py` now prefers `component_id` values when creating nodes and edges and maps names→ids for reliable edges.
+- **Explainability**: explainability records now reference `component_id` where possible, include confidence, rationale, rules applied, evidence, and human-review hints; `explainability_to_markdown()` helper added for exports.
+
+**Run / Build Notes**
+
+- Interactive graph component requires the small frontend build. From the component folder run:
+
+```bash
+cd components/streamlit_pyvis/frontend
+npm run build
+```
+
+- For offline / restricted environments: place `vis-network.min.js` into `components/streamlit_pyvis/frontend/build/` (the README UI will attempt a CDN fallback, but a local copy avoids proxy issues):
+
+```bash
+mkdir -p components/streamlit_pyvis/frontend/build
+curl -fSL -o components/streamlit_pyvis/frontend/build/vis-network.min.js https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js
+```
+
+- If `curl`/`npm` are not available in your environment I can vendor `vis-network.min.js` into the repo on your behalf — say the word and I'll add it.
+
+**Known Issues & Troubleshooting**
+
+- If the Knowledge Graph area reports the component-loading problem or an empty KG, the app now attempts to rebuild the KG from the current blueprint; if that fails it prints the underlying error (use that trace for debugging). Common causes:
+    - malformed JSON in `knowledge/` (fixed earlier for `design_system.json`) — ensure all `knowledge/*.json` parse cleanly
+    - missing frontend vendor file (`vis-network.min.js`) or blocked CDN access — follow the build/download steps above
+
+- Streamlit widget key collisions were a source of runtime errors; I audited and converted keys to deterministic, context-prefixed forms and added `component_id` on components for long-term stability.
+
+**Files of note (delta)**
+
+- `app.py` — explainability exports, ticket drafts, KG wiring, safe-serialize helper, UI changes
+- `components/streamlit_pyvis/` — frontend `index.js`, `index.html`, Python wrapper updated to accept `selected_node`
+- `src/ticket_generator.py` — ticket draft generation + MD exporter
+- `utils/loaders.py` — `make_component_id(name)` helper
+- `agents/retrieval_agent.py` — attach `component_id` to retrieved components
+- `agents/blueprint_generator.py` — include `component_id` in generated variant components
+- `knowledge/graph_builder.py` — prefer `component_id` and robust edge creation
+- `agents/explainability.py` — prefer `component_id` in linked components and evidence
+
+If you'd like, I can now:
+
+- Vendor `vis-network.min.js` into `components/streamlit_pyvis/frontend/build/` and commit it so interactive graphs never rely on CDN access.
+- Start Phase 7 (automated suggested fixes → ticket drafts integration with GitHub/Jira export).
+- Run the Streamlit app here and exercise the KG flow end-to-end and fix remaining runtime issues.
+
+Tell me which of the above you'd like next and I'll proceed.

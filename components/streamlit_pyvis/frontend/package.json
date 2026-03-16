@@ -1,0 +1,9 @@
+{
+  "name": "streamlit-pyvis-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "mkdir -p build && cp index.html index.js style.css build/"
+  },
+  "dependencies": {}
+}

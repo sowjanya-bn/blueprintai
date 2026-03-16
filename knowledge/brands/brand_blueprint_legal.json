@@ -1,0 +1,15 @@
+{
+  "brand_id": "blueprint_legal",
+  "display_name": "Blueprint Legal",
+  "ds_version_synced": "3.0.1",
+  "approved_components": ["Hero", "SignupForm", "DisclaimerFooter"],
+  "restricted_components": ["FeatureGrid"],
+  "tokens": {
+    "colors": {
+      "primary": "#1e293b",
+      "accent": "#94a3b8"
+    },
+    "typography": {"base": "Montserrat", "heading": "Montserrat"}
+  },
+  "deprecated_components": ["LegacyBanner"]
+}
