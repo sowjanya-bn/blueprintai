@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-
-from src.compliance import check_compliance
 from agents.brief_analyzer import analyze_brief
 from agents.retrieval_agent import retrieve_for_brief
 from agents.blueprint_generator import generate_variants
