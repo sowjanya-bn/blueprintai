@@ -619,38 +619,58 @@ This lightweight interface ensures development effort focuses on **AI orchestrat
 
 ### Frontend
 
-- Streamlit  
+- Streamlit
 
 ### Backend
 
-- Python  
-- FastAPI (optional API services)  
+- Python
+- FastAPI (optional API services)
 
 ### Agent Framework
 
-- LangGraph or CrewAI  
+- Custom multi-agent orchestration (Python)
 
 ### AI Models
 
-- OpenAI API  
-- structured prompting  
-- tool calling  
+| Model | Role | Notes |
+|-------|------|-------|
+| **Gemini 2.0 Flash** (`gemini-2.0-flash`) | Primary LLM — brief analysis, blueprint generation, variant descriptions | Via Google GenAI SDK; configurable via `GEMINI_MODEL` env var |
+| **`all-MiniLM-L6-v2`** (SentenceTransformers) | Semantic retrieval & RAG embeddings | Runs locally; no API key required |
+| **ChromaDB** | Vector store for design-system and compliance document embeddings | Persistent local store |
+
+**Model selection logic:** the system calls Gemini for structured JSON generation (requirements extraction, component variant descriptions, rationale). If `GEMINI_API_KEY` is not set, rule-based heuristic fallbacks are used — the app runs fully offline.
+
+### Capabilities Demonstrated
+
+- **Brief → Requirements**: Gemini extracts structured `StructuredRequirements` (pages, user roles, compliance needs, accessibility targets) from free-text client briefs.
+- **Semantic component retrieval**: `all-MiniLM-L6-v2` embeds design-system components and ranks them against the brief using cosine similarity.
+- **Blueprint generation with LLM rationale**: Gemini produces context-aware variant descriptions and per-component content guidance for each generated page blueprint.
+- **Automated validation**: rule-based validators check WCAG accessibility, GDPR compliance, brand token usage, and security patterns — no LLM required.
+- **Governance drift detection**: deterministic checks against the component registry catch deprecated components, token drift, and off-system patterns.
+- **Explainability**: structured decision traces link each generated artefact back to the source evidence, rules applied, and confidence scores.
+
+### Example Use Cases
+
+1. **Design agency onboarding a new brand**: paste a client brief → get a WCAG-AA–validated page blueprint with brand-token–compliant components in under 30 seconds.
+2. **Enterprise design-system audit**: upload existing page templates → governance layer flags deprecated components and token drift across projects.
+3. **Compliance-sensitive builds (GDPR/CCPA)**: compliance validator automatically detects missing consent flows and cookie banners before code reaches review.
+4. **Explainable AI for stakeholder sign-off**: every component recommendation includes a decision trace (why it was chosen, which policy it satisfies, recommended human review action).
 
 ### Retrieval Layer
 
-- pgvector / Chroma / Pinecone  
+- ChromaDB (local vector store)
+- SentenceTransformers `all-MiniLM-L6-v2` (local embeddings)
 
 ### Knowledge Graph
 
-- Neo4j or PostgreSQL graph model  
+- NetworkX (in-memory graph, serialized to JSON)
+- Interactive viewer: custom Streamlit component backed by `vis-network`
 
 ### Validation Tools
 
-- axe-core  
-- Lighthouse  
-- ESLint  
-- Semgrep  
-- custom rule engine  
+- Custom Python validators (accessibility, brand, compliance, security)
+- Rule engine in `src/compliance_policies.py`
+- Semantic similarity via SentenceTransformers for compliance matching
 
 ---
 
